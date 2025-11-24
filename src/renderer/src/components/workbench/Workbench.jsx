@@ -14,13 +14,45 @@ const Workbench = ({
   onDeleteRequest,
   onNewSnippet
 }) => {
+  const [editingSnippet, setEditingSnippet] = React.useState(null)
+
+  const handleEdit = (snippet) => {
+    setEditingSnippet(snippet)
+  }
+
+  const handleSave = (snippet) => {
+    onSave(snippet)
+    setEditingSnippet(null)
+  }
+
+  const handleCancelEdit = () => {
+    setEditingSnippet(null)
+  }
+
   if (activeView === 'settings') {
     return <SettingsPanel />
   }
 
-  // If a snippet is selected, show the Viewer
+  // If editing a snippet (or creating new one if we treat it that way, but usually new is handled by default return)
+  if (editingSnippet) {
+    return (
+      <SnippetEditor
+        initialSnippet={editingSnippet}
+        onSave={handleSave}
+        onCancel={handleCancelEdit}
+      />
+    )
+  }
+
+  // If a snippet is selected (Viewing), show the Viewer
   if (selectedSnippet) {
-    return <SnippetViewer snippet={selectedSnippet} onClose={onCloseSnippet} />
+    return (
+      <SnippetViewer
+        snippet={selectedSnippet}
+        onClose={onCloseSnippet}
+        onEdit={() => handleEdit(selectedSnippet)}
+      />
+    )
   }
 
   // Get the items to display based on active view
@@ -29,14 +61,14 @@ const Workbench = ({
   // If in explorer or projects view, show the grid of cards
   if (activeView === 'explorer' || activeView === 'projects') {
     return (
-      <div className="h-full flex flex-col bg-slate-900 overflow-hidden">
+      <div className="h-full flex flex-col bg-slate-50 dark:bg-slate-900 overflow-hidden transition-colors duration-200">
         {/* Header - Aligned with viewer */}
-        <div className="px-6 py-4 border-b border-slate-800 bg-slate-900 flex-shrink-0 flex items-center justify-between">
+        <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-shrink-0 flex items-center justify-between transition-colors duration-200">
           <div className="flex items-center gap-3">
-            <h1 className="text-sm font-medium text-white ">
+            <h1 className="text-sm font-medium text-slate-900 dark:text-white">
               {activeView === 'explorer' ? 'Code Snippets' : 'Projects'}
             </h1>
-            <span className="text-xs text-slate-600">•</span>
+            <span className="text-xs text-slate-400 dark:text-slate-600">•</span>
 
             <p className="text-xs text-slate-500">
               {items.length} {activeView === 'explorer' ? 'snippet' : 'project'}
@@ -48,7 +80,7 @@ const Workbench = ({
           {activeView === 'explorer' && (
             <button
               onClick={onNewSnippet}
-              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 hover:bg-primary-500 text-white rounded-md font-medium transition-all text-xs"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-primary-600 hover:bg-primary-500 text-white rounded-md font-medium transition-all text-xs shadow-sm"
             >
               <svg className="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path
@@ -69,7 +101,7 @@ const Workbench = ({
             <div className="flex flex-col items-center justify-center h-full text-center">
               <div className="mb-8">
                 <svg
-                  className="w-24 h-24 text-slate-600 mb-6 mx-auto"
+                  className="w-24 h-24 text-slate-300 dark:text-slate-600 mb-6 mx-auto"
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
@@ -81,10 +113,10 @@ const Workbench = ({
                     d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
                   />
                 </svg>
-                <h2 className="text-3xl font-bold text-white mb-3">
+                <h2 className="text-3xl font-bold text-slate-900 dark:text-white mb-3">
                   {activeView === 'explorer' ? 'Welcome to Quick Snippets' : 'No Projects Yet'}
                 </h2>
-                <p className="text-slate-400 text-lg mb-8 max-w-md mx-auto">
+                <p className="text-slate-500 dark:text-slate-400 text-lg mb-8 max-w-md mx-auto">
                   {activeView === 'explorer'
                     ? 'Store and organize your code snippets in one place. Get started by creating your first snippet.'
                     : 'Create your first project to organize related snippets together.'}
@@ -110,11 +142,11 @@ const Workbench = ({
 
                   <div className="flex items-center gap-4 text-sm text-slate-500">
                     <div className="flex items-center gap-2">
-                      <kbd className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-xs">
+                      <kbd className="px-2 py-1 bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-600 dark:text-slate-400">
                         Ctrl
                       </kbd>
                       <span>+</span>
-                      <kbd className="px-2 py-1 bg-slate-800 border border-slate-700 rounded text-xs">
+                      <kbd className="px-2 py-1 bg-slate-200 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 rounded text-xs text-slate-600 dark:text-slate-400">
                         N
                       </kbd>
                       <span className="ml-2">New Snippet</span>
@@ -124,12 +156,15 @@ const Workbench = ({
               )}
             </div>
           ) : (
-            <div className="overflow-y-auto">
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {items.map((item) => (
-                  <SnippetCard key={item.id} snippet={item} onRequestDelete={onDeleteRequest} />
-                ))}
-              </div>
+            <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-6 pb-6">
+              {items.map((item) => (
+                <SnippetCard
+                  key={item.id}
+                  snippet={item}
+                  onRequestDelete={onDeleteRequest}
+                  onEdit={handleEdit}
+                />
+              ))}
             </div>
           )}
         </div>
@@ -137,7 +172,7 @@ const Workbench = ({
     )
   }
 
-  // Default: show full-screen editor
+  // Default: show full-screen editor (New Snippet)
   return <SnippetEditor onSave={onSave} />
 }
 

@@ -47,27 +47,29 @@ const SettingsPanel = () => {
   }
 
   return (
-    <div className="h-full flex flex-col bg-slate-900 text-slate-300 overflow-y-auto">
+    <div className="h-full flex flex-col bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-300 overflow-y-auto transition-colors duration-200">
       {/* Header */}
-      <div className="p-8 pb-4 border-b border-slate-800">
-        <h1 className="text-3xl font-light text-white mb-2">Settings</h1>
+      <div className="p-8 pb-4 border-b border-slate-200 dark:border-slate-800">
+        <h1 className="text-3xl font-light text-slate-900 dark:text-white mb-2">Settings</h1>
         <p className="text-slate-500 text-sm">Manage your editor preferences and data.</p>
       </div>
 
       <div className="p-8 max-w-4xl space-y-12">
         {/* SECTION 1: APPEARANCE */}
         <section>
-          <h2 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-medium text-slate-900 dark:text-white mb-4 flex items-center gap-2">
             <span className="text-primary-500">#</span> Appearance
           </h2>
-          <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-6 space-y-6">
+          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700/50 p-6 space-y-6">
             {/* Theme Toggle */}
             <div className="flex items-center justify-between">
               <div>
-                <label className="block text-sm font-medium text-slate-200">Color Theme</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Color Theme
+                </label>
                 <p className="text-xs text-slate-500 mt-1">Switch between light and dark modes.</p>
               </div>
-              <div className="bg-slate-900 rounded p-1">
+              <div className="bg-slate-200 dark:bg-slate-900 rounded p-1">
                 <ThemeComponent />
               </div>
             </div>
@@ -75,14 +77,16 @@ const SettingsPanel = () => {
             {/* Font Size */}
             <div className="flex items-center justify-between">
               <div>
-                <label className="block text-sm font-medium text-slate-200">Font Size</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Font Size
+                </label>
                 <p className="text-xs text-slate-500 mt-1">Controls the font size in pixels.</p>
               </div>
               <input
                 type="number"
                 value={fontSize}
                 onChange={(e) => setFontSize(e.target.value)}
-                className="bg-slate-900 border border-slate-700 rounded w-20 px-3 py-1.5 text-sm focus:ring-1 focus:ring-primary-500 outline-none"
+                className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded w-20 px-3 py-1.5 text-sm text-slate-900 dark:text-white focus:ring-1 focus:ring-primary-500 outline-none transition-colors"
               />
             </div>
           </div>
@@ -90,20 +94,22 @@ const SettingsPanel = () => {
 
         {/* SECTION 2: EDITOR */}
         <section>
-          <h2 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-medium text-slate-900 dark:text-white mb-4 flex items-center gap-2">
             <span className="text-primary-500">#</span> Text Editor
           </h2>
-          <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-6 space-y-6">
+          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700/50 p-6 space-y-6">
             {/* Word Wrap */}
             <div className="flex items-center justify-between">
               <div>
-                <label className="block text-sm font-medium text-slate-200">Word Wrap</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Word Wrap
+                </label>
                 <p className="text-xs text-slate-500 mt-1">Controls how lines should wrap.</p>
               </div>
               <select
                 value={wordWrap}
                 onChange={(e) => setWordWrap(e.target.value)}
-                className="bg-slate-900 border border-slate-700 rounded px-3 py-1.5 text-sm outline-none"
+                className="bg-white dark:bg-slate-900 border border-slate-300 dark:border-slate-700 rounded px-3 py-1.5 text-sm text-slate-900 dark:text-white outline-none transition-colors"
               >
                 <option value="off">off</option>
                 <option value="on">on</option>
@@ -114,7 +120,9 @@ const SettingsPanel = () => {
             {/* Auto Save */}
             <div className="flex items-center justify-between">
               <div>
-                <label className="block text-sm font-medium text-slate-200">Auto Save</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Auto Save
+                </label>
                 <p className="text-xs text-slate-500 mt-1">
                   Automatically save changes after delay.
                 </p>
@@ -122,7 +130,7 @@ const SettingsPanel = () => {
               <button
                 onClick={() => setAutoSave(!autoSave)}
                 className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                  autoSave ? 'bg-primary-600' : 'bg-slate-700'
+                  autoSave ? 'bg-primary-600' : 'bg-slate-300 dark:bg-slate-700'
                 }`}
               >
                 <span
@@ -137,20 +145,22 @@ const SettingsPanel = () => {
 
         {/* SECTION 3: DATA & SYSTEM */}
         <section>
-          <h2 className="text-lg font-medium text-white mb-4 flex items-center gap-2">
+          <h2 className="text-lg font-medium text-slate-900 dark:text-white mb-4 flex items-center gap-2">
             <span className="text-red-400">#</span> System & Data
           </h2>
-          <div className="bg-slate-800/50 rounded-lg border border-slate-700/50 p-6 space-y-6">
+          <div className="bg-slate-50 dark:bg-slate-800/50 rounded-lg border border-slate-200 dark:border-slate-700/50 p-6 space-y-6">
             <div className="flex items-start justify-between">
               <div>
-                <label className="block text-sm font-medium text-slate-200">Export Library</label>
+                <label className="block text-sm font-medium text-slate-700 dark:text-slate-200">
+                  Export Library
+                </label>
                 <p className="text-xs text-slate-500 mt-1 max-w-sm">
                   Create a JSON backup of all your snippets and projects.
                 </p>
               </div>
               <button
                 onClick={handleExportData}
-                className="bg-slate-700 hover:bg-slate-600 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2"
+                className="bg-slate-200 dark:bg-slate-700 hover:bg-slate-300 dark:hover:bg-slate-600 text-slate-900 dark:text-white px-4 py-2 rounded-md text-sm font-medium transition-colors flex items-center gap-2"
               >
                 <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path
@@ -165,20 +175,20 @@ const SettingsPanel = () => {
             </div>
 
             {/* Shortcut Reference */}
-            <div className="pt-6 border-t border-slate-700/50">
+            <div className="pt-6 border-t border-slate-200 dark:border-slate-700/50">
               <h3 className="text-xs font-bold uppercase tracking-wider text-slate-500 mb-3">
                 Keyboard Shortcuts
               </h3>
-              <div className="grid grid-cols-2 gap-4 text-sm">
+              <div className="grid grid-cols-2 gap-4 text-sm text-slate-600 dark:text-slate-400">
                 <div className="flex justify-between">
                   <span>Toggle Sidebar</span>
-                  <kbd className="bg-slate-900 px-2 py-0.5 rounded border border-slate-700 font-mono text-xs">
+                  <kbd className="bg-slate-200 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 font-mono text-xs text-slate-700 dark:text-slate-300">
                     Ctrl+B
                   </kbd>
                 </div>
                 <div className="flex justify-between">
                   <span>Close Modal</span>
-                  <kbd className="bg-slate-900 px-2 py-0.5 rounded border border-slate-700 font-mono text-xs">
+                  <kbd className="bg-slate-200 dark:bg-slate-900 px-2 py-0.5 rounded border border-slate-300 dark:border-slate-700 font-mono text-xs text-slate-700 dark:text-slate-300">
                     Esc
                   </kbd>
                 </div>

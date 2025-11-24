@@ -1,8 +1,16 @@
-import React, { useState } from 'react'
+import React, { useState, useEffect } from 'react'
 
-const SnippetEditor = ({ onSave }) => {
-  const [code, setCode] = useState('')
-  const [language, setLanguage] = useState('javascript')
+const SnippetEditor = ({ onSave, initialSnippet, onCancel }) => {
+  const [code, setCode] = useState(initialSnippet?.code || '')
+  const [language, setLanguage] = useState(initialSnippet?.language || 'javascript')
+
+  // Update state if initialSnippet changes
+  useEffect(() => {
+    if (initialSnippet) {
+      setCode(initialSnippet.code)
+      setLanguage(initialSnippet.language)
+    }
+  }, [initialSnippet])
 
   const handleSubmit = (e) => {
     e.preventDefault()
@@ -16,23 +24,25 @@ const SnippetEditor = ({ onSave }) => {
 
     // Construct the object
     const newSnippet = {
-      id: Date.now().toString(),
-      title: title,
+      id: initialSnippet?.id || Date.now().toString(),
+      title: initialSnippet?.title || title, // Keep existing title if editing, or generate new
       code: code,
       language: language,
-      timestamp: Date.now(),
+      timestamp: Date.now(), // Update timestamp on edit? Maybe keep original creation time? Let's update it for now to show activity.
       type: 'snippet'
     }
 
     // Send it back to the parent
     onSave(newSnippet)
 
-    // Reset form
-    setCode('')
+    // Reset form only if not editing (or if we want to clear after save)
+    if (!initialSnippet) {
+      setCode('')
+    }
   }
 
   return (
-    <div className="h-full flex flex-col bg-slate-900">
+    <div className="h-full flex flex-col bg-white dark:bg-slate-900 transition-colors duration-200">
       <form onSubmit={handleSubmit} className="h-full flex flex-col">
         {/* EDITOR AREA */}
         <div className="flex-1 relative">
@@ -40,23 +50,23 @@ const SnippetEditor = ({ onSave }) => {
             placeholder="// Start typing your code here..."
             value={code}
             onChange={(e) => setCode(e.target.value)}
-            className="w-full h-full bg-[#0f172a] text-slate-300 p-6 font-mono text-sm resize-none focus:outline-none focus:ring-inset focus:ring-1 focus:ring-slate-700"
+            className="w-full h-full bg-slate-50 dark:bg-[#0f172a] text-slate-900 dark:text-slate-300 p-6 font-mono text-sm resize-none focus:outline-none focus:ring-inset focus:ring-1 focus:ring-slate-200 dark:focus:ring-slate-700 transition-colors duration-200"
             spellCheck="false"
             autoFocus
           />
         </div>
 
         {/* TOOLBAR / FOOTER */}
-        <div className="border-t border-slate-700 p-4 bg-slate-800/50 flex items-center justify-between backdrop-blur-sm">
+        <div className="border-t border-slate-200 dark:border-slate-700 p-4 bg-white dark:bg-slate-800/50 flex items-center justify-between backdrop-blur-sm transition-colors duration-200">
           {/* Left: Language Selector */}
           <div className="flex items-center gap-3">
-            <span className="text-xs text-slate-400 font-medium uppercase tracking-wider">
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium uppercase tracking-wider">
               Language:
             </span>
             <select
               value={language}
               onChange={(e) => setLanguage(e.target.value)}
-              className="bg-slate-700 border border-slate-600 rounded px-3 py-1.5 text-sm text-white focus:outline-none focus:ring-2 focus:ring-primary-500 hover:border-slate-500 transition-colors"
+              className="bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-3 py-1.5 text-sm text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 hover:border-slate-300 dark:hover:border-slate-500 transition-colors"
             >
               <option value="javascript">JavaScript</option>
               <option value="python">Python</option>
@@ -74,19 +84,30 @@ const SnippetEditor = ({ onSave }) => {
 
           {/* Right: Actions */}
           <div className="flex gap-3">
-            <button
-              type="button"
-              onClick={() => setCode('')}
-              className="px-4 py-1.5 text-sm text-slate-400 hover:text-white transition-colors hover:bg-slate-700/50 rounded"
-            >
-              Clear
-            </button>
+            {onCancel ? (
+              <button
+                type="button"
+                onClick={onCancel}
+                className="px-4 py-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded"
+              >
+                Cancel
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setCode('')}
+                className="px-4 py-1.5 text-sm text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition-colors hover:bg-slate-100 dark:hover:bg-slate-700/50 rounded"
+              >
+                Clear
+              </button>
+            )}
+
             <button
               type="submit"
               disabled={!code.trim()}
               className="px-6 py-1.5 bg-primary-600 hover:bg-primary-500 text-white rounded-md text-sm font-medium transition-all shadow-lg shadow-primary-900/20 disabled:opacity-50 disabled:cursor-not-allowed disabled:shadow-none"
             >
-              Save Snippet
+              {initialSnippet ? 'Update Snippet' : 'Save Snippet'}
             </button>
           </div>
         </div>

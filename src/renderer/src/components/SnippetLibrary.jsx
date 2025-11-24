@@ -103,7 +103,7 @@ const SnippetLibrary = () => {
   }, [deleteModal.isOpen, createProjectModalOpen, isCreatingSnippet])
 
   return (
-    <div className="flex h-screen bg-slate-900 text-white overflow-hidden">
+    <div className="flex h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white overflow-hidden transition-colors duration-200">
       {toast && <div className="toast">{toast}</div>}
 
       {/* Activity Bar - Fixed */}
@@ -117,7 +117,7 @@ const SnippetLibrary = () => {
 
       {/* Sidebar - Collapsible */}
       {!sidebarCollapsed && (
-        <div className="w-80 flex-shrink-0 border-r border-slate-700">
+        <div className="w-80 flex-shrink-0 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 transition-colors duration-200">
           <Sidebar
             activeView={activeView}
             items={filteredItems}
@@ -138,7 +138,7 @@ const SnippetLibrary = () => {
       )}
 
       {/* Main Workbench */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
         <Workbench
           activeView={isCreatingSnippet ? 'editor' : activeView}
           selectedSnippet={selectedSnippet}

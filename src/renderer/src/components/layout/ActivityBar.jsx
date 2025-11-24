@@ -9,8 +9,8 @@ const ActivityBarIcon = ({ icon, label, active, onClick }) => (
       w-12 h-12 flex items-center justify-center cursor-pointer transition-all duration-200 border-l-2
       ${
         active
-          ? 'border-primary-500 text-white bg-slate-800'
-          : 'border-transparent text-slate-400 hover:text-white hover:bg-slate-800'
+          ? 'border-primary-500 text-primary-600 dark:text-white bg-slate-100 dark:bg-slate-800'
+          : 'border-transparent text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800'
       }
     `}
   >
@@ -33,7 +33,7 @@ const ActivityBar = ({ activeView, setActiveView, toggleSidebar }) => {
   }
 
   return (
-    <div className="w-12 flex flex-col bg-slate-900 border-r border-slate-700 h-full shrink-0 z-20">
+    <div className="w-12 flex flex-col bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 h-full shrink-0 z-20 transition-colors duration-200">
       {/* --- TOP ICONS --- */}
 
       {/* Explorer */}
