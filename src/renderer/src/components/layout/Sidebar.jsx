@@ -79,7 +79,7 @@ const Sidebar = ({
               <button
                 onClick={onCreateProject}
                 className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
-                title="New Project"
+                title="New Project (Ctrl+Shift+N)"
               >
                 <Plus size={16} />
               </button>
@@ -88,7 +88,7 @@ const Sidebar = ({
               <button
                 onClick={onCreateSnippet}
                 className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
-                title="New Snippet"
+                title="New Snippet (Ctrl+N)"
               >
                 <Plus size={14} />
               </button>

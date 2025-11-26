@@ -1,20 +1,25 @@
 import React, { useState, useEffect, useRef } from 'react'
-
+import { useKeyboardShortcuts } from '../hook/useKeyboardShortcuts'
 const RenameModal = ({ isOpen, onClose, onRename, currentName, title = 'Rename' }) => {
-  const [newName, setNewName] = useState(currentName)
+  const [newName, setNewName] = useState(currentName || '')
   const inputRef = useRef(null)
 
+  // Reset when modal opens
   useEffect(() => {
     if (isOpen) {
       setNewName(currentName)
-      // Focus input after a short delay to ensure modal is rendered
-      setTimeout(() => inputRef.current?.focus(), 50)
+      setTimeout(() => inputRef.current?.focus(), 50) // .select() highlights text for easy overwrite
     }
   }, [isOpen, currentName])
 
+  // Handle keyboard shortcuts
+  useKeyboardShortcuts({
+    onEscape: onClose
+  })
+
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (newName.trim()) {
+    if (newName.trim() && newName !== currentName) {
       onRename(newName.trim())
     }
   }

@@ -13,7 +13,7 @@ const CreateProjectModal = ({ isOpen, onClose, onSave }) => {
     onSave({ title, code: description || '', language })
     setTitle('')
     setDescription('')
-    setLanguage('javascript')
+    setLanguage('js')
     onClose()
   }
 

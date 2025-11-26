@@ -49,7 +49,8 @@ const SnippetViewer = ({ snippet, onClose, onEdit }) => {
             </span>
             <span className="text-xs text-slate-400 dark:text-slate-600 flex-shrink-0">•</span>
             <small className="text-xs text-slate-500 dark:text-slate-400 font-mono flex-shrink-0">
-              {toCapitalized(snippet.language)}
+              {/* {toCapitalized(snippet.language)} */}
+              {snippet.language}
             </small>
           </div>
         </div>

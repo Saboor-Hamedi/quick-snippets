@@ -35,6 +35,11 @@ export const useSnippetData = () => {
         // Reload snippets
         const loadedSnippets = await window.api.getSnippets()
         setSnippets(loadedSnippets || [])
+        // C. IMPORTANT: Update the Active View Immediately!
+        // If the item we just saved is the one currently open, update the state.
+        if (selectedSnippet && selectedSnippet.id === snippet.id) {
+          setSelectedSnippet(snippet)
+        }
         showToast('✓ Snippet saved successfully')
       }
     } catch (error) {
@@ -92,6 +97,22 @@ export const useSnippetData = () => {
     }
   }
 
+  // Save or update a project (for renaming/editing existing projects)
+  const saveProject = async (project) => {
+    try {
+      if (window.api?.saveProject) {
+        await window.api.saveProject(project)
+        // Reload projects
+        const loadedProjects = await window.api.getProjects()
+        setProjects(loadedProjects || [])
+        showToast('✓ Project saved successfully')
+      }
+    } catch (error) {
+      console.error('Failed to save project:', error)
+      showToast('❌ Failed to save project')
+    }
+  }
+
   return {
     snippets,
     setSnippets,
@@ -100,6 +121,7 @@ export const useSnippetData = () => {
     selectedSnippet,
     setSelectedSnippet,
     saveSnippet,
+    saveProject,
     deleteItem,
     createProject
   }

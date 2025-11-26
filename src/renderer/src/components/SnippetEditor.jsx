@@ -1,24 +1,24 @@
 // Edit snippets
-import React, { useState, useEffect } from 'react'
+import React, { useState, useEffect, useRef } from 'react'
 import PropTypes from 'prop-types'
 import { X } from 'lucide-react'
 import toCapitalized from '../hook/stringUtils'
 import { useKeyboardShortcuts } from '../hook/useKeyboardShortcuts'
+import { useTextEditor } from '../hook/useTextEditor'
 const SnippetEditor = ({ onSave, initialSnippet, onCancel }) => {
-  const [code, setCode] = useState(initialSnippet?.code || '')
-  const [language, setLanguage] = useState(initialSnippet?.language || 'txt')
-
-  // Update state if initialSnippet changes
-  useEffect(() => {
+  const { code, setCode, textareaRef, handleKeyDown } = useTextEditor(initialSnippet?.code || '')
+  // 2. We keep language state here because it's specific to the UI, not the text editing logic
+  const [language, setLanguage] = React.useState(initialSnippet?.language || 'txt')
+  // Update language if initialSnippet changes
+  React.useEffect(() => {
     if (initialSnippet) {
-      setCode(initialSnippet.code)
       setLanguage(initialSnippet.language)
+      // Note: 'code' updates automatically inside useTextEditor via its internal useEffect
     }
   }, [initialSnippet])
 
   // update or create snippet
   const handleSave = () => {
-    // Validation
     if (!code.trim()) return
 
     // Auto-generate title based on the first line of code (without "Snippet:" prefix)
@@ -76,7 +76,8 @@ const SnippetEditor = ({ onSave, initialSnippet, onCancel }) => {
               </span>
               <span className="text-xs text-slate-400 dark:text-slate-600 flex-shrink-0">•</span>
               <small className="text-xs text-slate-500 dark:text-slate-400 font-mono flex-shrink-0">
-                {toCapitalized(language)}
+                {/* {toCapitalized(language)} */}
+                {toCapitalized ? toCapitalized(language) : language}
               </small>
             </div>
           </div>
@@ -94,11 +95,35 @@ const SnippetEditor = ({ onSave, initialSnippet, onCancel }) => {
         {/* EDITOR AREA */}
         <div className="flex-1 relative">
           <textarea
-            placeholder="// Start typing your code here...
-// Press Ctrl+S to save"
+            placeholder="Type your snippets here..."
             value={code}
+            ref={textareaRef}
             onChange={(e) => setCode(e.target.value)}
-            className="w-full h-full bg-slate-50 dark:bg-[#0f172a] text-slate-900 dark:text-slate-300 p-4 font-mono text-sm resize-none focus:outline-none transition-colors duration-200"
+            onKeyDown={handleKeyDown}
+            className="
+                    w-full h-full 
+                    bg-slate-50 dark:bg-[#0f172a] 
+                    text-slate-800 dark:text-slate-300 
+                    p-4 
+                    font-mono text-sm 
+                    
+                    /* REMOVE BORDERS & RINGS */
+                    resize-none 
+                    border-none 
+                    outline-none 
+                    focus:outline-none 
+                    focus:ring-0  /* This is key: removes the blue Tailwind glow */
+                    
+                    /* TYPOGRAPHY POLISH */
+                    leading-relaxed /* More space between lines (1.625) */
+                    tracking-normal
+                    
+                    /* VISUAL FLINT */
+                    caret-primary-600 dark:caret-primary-400 /* Colored blinking cursor */
+                    selection:bg-primary-200 dark:selection:bg-primary-900/50 /* Highlight color */
+                    
+                    transition-colors duration-200
+                  "
             spellCheck="false"
             autoFocus
           />

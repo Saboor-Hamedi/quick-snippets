@@ -6,8 +6,6 @@ import { useSnippetData } from '../hook/useSnippetData'
 import ActivityBar from './layout/ActivityBar'
 import Sidebar from './layout/Sidebar'
 import Workbench from './workbench/Workbench'
-import SnippetEditor from './SnippetEditor'
-import SnippetViewer from './SnippetViewer'
 import DeleteModel from '../utils/DeleteModel'
 import CreateProjectModal from './CreateProjectModal'
 import RenameModal from './RenameModal'
@@ -21,6 +19,7 @@ const SnippetLibrary = () => {
     selectedSnippet,
     setSelectedSnippet,
     saveSnippet,
+    saveProject,
     deleteItem,
     createProject
   } = useSnippetData()
@@ -105,9 +104,14 @@ const SnippetLibrary = () => {
         setSidebarCollapsed((prev) => !prev)
       }
       // Ctrl+N creates new snippet
-      if ((e.ctrlKey || e.metaKey) && e.key === 'n') {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'n' && !e.shiftKey) {
         e.preventDefault()
         setIsCreatingSnippet(true)
+      }
+      // Ctrl+Shift+N creates new project
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'N') {
+        e.preventDefault()
+        setCreateProjectModalOpen(true)
       }
       // Ctrl+P toggles Command Palette
       if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
@@ -128,29 +132,35 @@ const SnippetLibrary = () => {
   // 6. Rename Logic -- This is where the rename modal is triggered and the rename is handled
   const handleRename = async (newName) => {
     if (!renameModal.item) return
+
+    // 1. Prepare the updated object
     const updatedItem = { ...renameModal.item, title: newName }
     const isProject = renameModal.item.type === 'project'
-    const itemType = isProject ? 'project' : 'snippet'
 
+    // 2. Update the selected item immediately (optimistic update)
+    if (selectedSnippet && selectedSnippet.id === updatedItem.id) {
+      setSelectedSnippet(updatedItem)
+    }
+
+    // 3. Save to backend using the hook's functions
+    // These functions automatically reload the sidebar list after saving
     try {
-      const apiMethod = isProject ? 'saveProject' : 'saveSnippet'
-      if (!window.api?.[apiMethod]) {
-        throw new Error(`API method ${apiMethod} not found`)
+      if (isProject) {
+        await saveProject(updatedItem)
+      } else {
+        await saveSnippet(updatedItem)
       }
-      await window.api[apiMethod](updatedItem)
-      showToast(`✓ ${itemType} renamed`)
-      // finally refresh the list
-      if (createProject && isProject) {
-        createProject(updatedItem)
-      }
+      // Toast is shown by the hook functions
     } catch (error) {
-      console.error('Rename failed:', error)
-      showToast('❌ Rename failed')
+      // Error toast is shown by the hook functions
+      // Revert the optimistic update if save failed
+      if (selectedSnippet && selectedSnippet.id === updatedItem.id) {
+        setSelectedSnippet(renameModal.item)
+      }
     } finally {
       setRenameModal({ isOpen: false, item: null })
     }
   }
-
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white overflow-hidden transition-colors duration-200">
       {toast && <div className="toast">{toast}</div>}
