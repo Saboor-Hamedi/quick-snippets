@@ -526,3 +526,5 @@ code,
   cursor: text;
   pointer-events: auto;
 }
+
+.mention-pill { cursor: pointer !important; }

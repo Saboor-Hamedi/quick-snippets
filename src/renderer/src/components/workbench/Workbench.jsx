@@ -51,6 +51,11 @@ const Workbench = ({
         onNew={onNewSnippet}
         onNewProject={onNewProject}
         activeView={currentContext}
+        snippets={snippets}
+        projects={projects}
+        onSnippetMentionClick={(snippet) => {
+          setEditingSnippet(snippet)
+        }}
         isCreateMode
       />
     )
@@ -67,6 +72,11 @@ const Workbench = ({
         onNewProject={onNewProject}
         onCancel={handleCancelEdit}
         onDelete={onDeleteRequest}
+        snippets={snippets}
+        projects={projects}
+        onSnippetMentionClick={(snippet) => {
+          setEditingSnippet(snippet)
+        }}
       />
     )
   }
@@ -82,6 +92,11 @@ const Workbench = ({
         onNewProject={onNewProject}
         onCancel={onCloseSnippet}
         onDelete={onDeleteRequest}
+        snippets={snippets}
+        projects={projects}
+        onSnippetMentionClick={(snippet) => {
+          setEditingSnippet(snippet)
+        }}
       />
     )
   }

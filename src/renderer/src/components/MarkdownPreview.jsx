@@ -41,7 +41,7 @@ const normalizeLang = (lang) => {
   return map[l] || l
 }
 
-const MarkdownPreview = ({ content }) => {
+const MarkdownPreview = ({ content, onSnippetClick, snippets = [], language }) => {
   const isDark = document.documentElement.classList.contains('dark')
   const style = isDark ? atomOneDark : docco
 
@@ -51,9 +51,21 @@ const MarkdownPreview = ({ content }) => {
         <ReactMarkdown
           remarkPlugins={[remarkGfm]}
           components={{
-            h1: ({ node, ...props }) => <h1 className="font-bold text-2xl mb-3" {...props} />,
-            h2: ({ node, ...props }) => <h2 className="font-bold text-xl mb-2" {...props} />,
-            h3: ({ node, ...props }) => <h3 className="font-bold text-lg mb-2" {...props} />,
+            h1: ({ node, children, ...props }) => (
+              <h1 className="font-bold text-2xl mb-3" {...props}>
+                {renderWithTagsAndMentions(children, snippets, onSnippetClick, language)}
+              </h1>
+            ),
+            h2: ({ node, children, ...props }) => (
+              <h2 className="font-bold text-xl mb-2" {...props}>
+                {renderWithTagsAndMentions(children, snippets, onSnippetClick, language)}
+              </h2>
+            ),
+            h3: ({ node, children, ...props }) => (
+              <h3 className="font-bold text-lg mb-2" {...props}>
+                {renderWithTagsAndMentions(children, snippets, onSnippetClick, language)}
+              </h3>
+            ),
             a: ({ node, href, children, ...props }) => (
               <a
                 href={href}
@@ -71,8 +83,16 @@ const MarkdownPreview = ({ content }) => {
                 {...props}
               />
             ),
-            p: ({ children, ...props }) => <p {...props}>{renderWithTags(children)}</p>,
-            li: ({ children, ...props }) => <li {...props}>{renderWithTags(children)}</li>,
+            p: ({ children, ...props }) => (
+              <p {...props}>
+                {renderWithTagsAndMentions(children, snippets, onSnippetClick, language)}
+              </p>
+            ),
+            li: ({ children, ...props }) => (
+              <li {...props}>
+                {renderWithTagsAndMentions(children, snippets, onSnippetClick, language)}
+              </li>
+            ),
             code({ node, inline, className, children, ...props }) {
               const match = /language-(\w+)/.exec(className || '')
               const lang = normalizeLang(match?.[1])
@@ -103,25 +123,63 @@ const MarkdownPreview = ({ content }) => {
   )
 }
 
-const renderWithTags = (children) => {
-  const flatten = (nodes) =>
-    nodes
-      .map((n) => (typeof n === 'string' ? n : (n && n.props && n.props.children) || ''))
-      .join(' ')
-  const text = Array.isArray(children) ? flatten(children) : String(children || '')
-  const parts = text.split(/(#[a-zA-Z0-9_-]+)/g)
-  return parts.map((part, i) =>
-    part.startsWith('#') ? (
-      <span
-        key={i}
-        className="inline-block px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-[#1e3a8a] dark:text-sky-200 text-xs mr-1 align-middle"
-      >
-        {part}
-      </span>
-    ) : (
-      <span key={i}>{part}</span>
+const renderWithTagsAndMentions = (children, snippets, onSnippetClick, language) => {
+  const renderText = (text, keyBase) => {
+    const parts = String(text || '').split(/(#[a-zA-Z0-9_.-]+|@[a-zA-Z0-9_.-]+)/g)
+    return parts.map((part, i) => {
+      if (part.startsWith('#')) {
+        return (
+          <span
+            key={`${keyBase}-t-${i}`}
+            className="inline-block px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-[#1e3a8a] dark:text-sky-200 text-xs mr-1 align-middle"
+          >
+            {part}
+          </span>
+        )
+      }
+      if (part.startsWith('@')) {
+        const snippetName = part.slice(1)
+        const matchedSnippet = (snippets || []).find(
+          (s) =>
+            (s.title || '').toLowerCase().replace(/\s+/g, '-') === snippetName.toLowerCase() ||
+            (s.title || '').toLowerCase() === snippetName.toLowerCase()
+        )
+        if (matchedSnippet && onSnippetClick) {
+          return (
+            <button
+              key={`${keyBase}-m-${i}`}
+              onClick={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                onSnippetClick(matchedSnippet)
+              }}
+              className="mention-pill inline-block px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 text-xs mr-1 align-middle hover:bg-primary-200 dark:hover:bg-primary-900/50 cursor-pointer transition-colors border border-primary-300 dark:border-primary-700 hover:underline"
+              title={`Open snippet: ${matchedSnippet.title}`}
+            >
+              {part}
+            </button>
+          )
+        }
+        return (
+          <span
+            key={`${keyBase}-m-${i}`}
+            className="inline-block px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 text-xs mr-1 align-middle opacity-50"
+            title="Snippet not found"
+          >
+            {part}
+          </span>
+        )
+      }
+      return <span key={`${keyBase}-s-${i}`}>{part}</span>
+    })
+  }
+
+  if (Array.isArray(children)) {
+    return children.flatMap((child, idx) =>
+      typeof child === 'string' ? renderText(child, `c-${idx}`) : child
     )
-  )
+  }
+  return renderText(children, 'c-0')
 }
 
 const CodeBlock = ({ language, code, style }) => {

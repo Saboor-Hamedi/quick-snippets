@@ -1,5 +1,4 @@
 // Edit snippets with autosave functionality - Clean live editing experience
-
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import PropTypes from 'prop-types'
 import { useDebounce, useDebouncedCallback } from 'use-debounce'
@@ -19,7 +18,10 @@ const SnippetEditor = ({
   onDelete,
   onNewProject,
   isCreateMode,
-  activeView
+  activeView,
+  snippets,
+  projects,
+  onSnippetMentionClick
 }) => {
   const { code, setCode, textareaRef, handleKeyDown } = useTextEditor(initialSnippet?.code || '')
   const [language, setLanguage] = React.useState(initialSnippet?.language || 'txt')
@@ -120,8 +122,11 @@ const SnippetEditor = ({
     [debouncedPreviewCode]
   )
   const highlightedHtml = useHighlight(debouncedPreviewCode || '', language)
-  const isMarkdownLike = /^(# |## |### |> |\* |\d+\. )/m.test(code || '')
-  const showMarkdown = language === 'md' || language === 'markdown' || isMarkdownLike
+  const isMarkdownHeuristic =
+    /^(# |## |### |> |\* |\d+\. )/m.test(code || '') || /@\w+/.test(code || '')
+  const isMarkdownLike =
+    (language === 'txt' && isMarkdownHeuristic) || language === 'md' || language === 'markdown'
+  const showMarkdown = isMarkdownLike
   const showCodePreview = !showMarkdown && language !== 'txt'
   const canPreview = showMarkdown || showCodePreview
   const [layoutMode, setLayoutMode] = useState('editor')
@@ -132,9 +137,14 @@ const SnippetEditor = ({
   const resizingRef = useRef(false)
   const syncingRef = useRef(false)
   const dividerWidth = 6
+  const outerRef = useRef(null)
   const [nameOpen, setNameOpen] = useState(false)
   const [nameInput, setNameInput] = useState('')
   const [menu, setMenu] = useState(null)
+  const [mentionOpen, setMentionOpen] = useState(false)
+  const [mentionQuery, setMentionQuery] = useState('')
+  const [mentionPos, setMentionPos] = useState({ x: 0, y: 0 })
+  const [mentionItems, setMentionItems] = useState([])
 
   useEffect(() => {
     if (!canPreview && layoutMode !== 'editor') {
@@ -185,6 +195,110 @@ const SnippetEditor = ({
     window.addEventListener('mouseup', onUp)
   }
 
+  const computeCaretPosition = () => {
+    const ta = textareaRef.current
+    if (!ta) return { x: 0, y: 0 }
+    const div = document.createElement('div')
+    const style = getComputedStyle(ta)
+    ;[
+      'fontFamily',
+      'fontSize',
+      'fontWeight',
+      'letterSpacing',
+      'whiteSpace',
+      'wordBreak',
+      'lineHeight',
+      'paddingTop',
+      'paddingRight',
+      'paddingBottom',
+      'paddingLeft',
+      'borderTopWidth',
+      'borderLeftWidth',
+      'textAlign'
+    ].forEach((k) => (div.style[k] = style[k]))
+    div.style.position = 'absolute'
+    div.style.visibility = 'hidden'
+    div.style.width = ta.clientWidth + 'px'
+    div.style.whiteSpace = 'pre-wrap'
+    div.style.wordBreak = 'break-word'
+    const before = (code || '').slice(0, ta.selectionStart)
+    const after = (code || '').slice(ta.selectionStart)
+    div.innerHTML =
+      before.replace(/\n/g, '<br/>') +
+      '<span id="caret">\u200b</span>' +
+      after.replace(/\n/g, '<br/>')
+    ta.parentElement.appendChild(div)
+    const caret = div.querySelector('#caret')
+    const rectTa = ta.getBoundingClientRect()
+    const rectClone = div.getBoundingClientRect()
+    const rectCaret = caret.getBoundingClientRect()
+    const offsetX = rectCaret.left - rectClone.left
+    const offsetY = rectCaret.top - rectClone.top
+    const viewportX = rectTa.left + offsetX - ta.scrollLeft
+    const viewportY = rectTa.top + offsetY - ta.scrollTop
+    const pos = { x: viewportX, y: viewportY }
+    console.log('mention.caret(viewport-adjusted)', pos)
+    div.remove()
+    return pos
+  }
+
+  const updateMention = () => {
+    const ta = textareaRef.current
+    if (!ta) return
+    const pos = ta.selectionStart
+    const text = code || ''
+    let i = pos - 1
+    while (i >= 0 && /[a-zA-Z0-9_\-.]/.test(text[i])) i--
+    if (text[i] === '@') {
+      const start = i + 1
+      const query = text.slice(start, pos)
+      setMentionQuery(query)
+      const coords = computeCaretPosition()
+      const padX = 12
+      const padY = 20
+      let vx = (coords.x || 0) + padX
+      let vy = (coords.y || 0) + padY
+      const menuW = 320
+      const menuH = 220
+      vx = Math.max(8, Math.min(vx, window.innerWidth - menuW - 8))
+      vy = Math.max(8, Math.min(vy, window.innerHeight - menuH - 8))
+      const suggestions = [...(snippets || []), ...(projects || [])]
+        .filter((s) => (s.title || '').toLowerCase().includes(query.toLowerCase()))
+        .slice(0, 5)
+      console.log('mention.open', { query, pos, suggestions: suggestions.map((s) => s.title) })
+      setMentionItems(suggestions)
+      setMentionPos({ x: vx, y: vy })
+      setMentionOpen(true)
+    } else {
+      console.log('mention.close')
+      setMentionOpen(false)
+    }
+  }
+
+  const insertMention = (snippet) => {
+    const ta = textareaRef.current
+    if (!ta) return
+    const pos = ta.selectionStart
+    const text = code || ''
+    let i = pos - 1
+    while (i >= 0 && /[a-zA-Z0-9_\-.]/.test(text[i])) i--
+    if (text[i] !== '@') return
+    const start = i
+    const slug = (snippet.title || '').toLowerCase().trim().replace(/\s+/g, '-')
+    console.log('mention.insert', { slug, id: snippet.id })
+    const before = text.slice(0, start)
+    const after = text.slice(pos)
+    const inserted = `@${slug} `
+    const newVal = before + inserted + after
+    setCode(newVal)
+    const caret = before.length + inserted.length
+    requestAnimationFrame(() => {
+      ta.selectionStart = caret
+      ta.selectionEnd = caret
+      setMentionOpen(false)
+    })
+  }
+
   // Trigger debounced save on content or language change
   useEffect(() => {
     if (!initialSnippet?.title) return
@@ -193,7 +307,10 @@ const SnippetEditor = ({
 
   // Handle keyboard shortcuts (only Escape now)
   useKeyboardShortcuts({
-    onEscape: onCancel
+    onEscape: () => {
+      if (mentionOpen) setMentionOpen(false)
+      else onCancel && onCancel()
+    }
   })
 
   const handleSave = () => {
@@ -245,6 +362,7 @@ const SnippetEditor = ({
       <WelcomePage onNewSnippet={onNew} onNewProject={onNewProject} />
     ) : (
       <div
+        ref={outerRef}
         className="h-full flex flex-col items-stretch bg-slate-50 dark:bg-[#0d1117] transition-colors duration-200 relative"
         onContextMenu={(e) => {
           e.preventDefault()
@@ -282,7 +400,12 @@ const SnippetEditor = ({
                 style={{ maxHeight: '100%' }}
               >
                 {showMarkdown ? (
-                  <MarkdownPreview content={code} />
+                  <MarkdownPreview
+                    content={code}
+                    snippets={[...(snippets || []), ...(projects || [])]}
+                    language={language}
+                    onSnippetClick={onSnippetMentionClick}
+                  />
                 ) : (
                   <div className="p-4">
                     <pre className="text-xs font-mono leading-5 m-0">
@@ -291,6 +414,42 @@ const SnippetEditor = ({
                         dangerouslySetInnerHTML={{ __html: highlightedHtml }}
                       />
                     </pre>
+                    {/@[a-zA-Z0-9_.-]+/.test(code || '') && (
+                      <div className="mt-2 flex flex-wrap gap-1">
+                        {Array.from(new Set((code || '').match(/@[a-zA-Z0-9_.-]+/g) || [])).map(
+                          (part, idx) => {
+                            const name = part.slice(1)
+                            const matched = [...(snippets || []), ...(projects || [])].find(
+                              (s) =>
+                                (s.title || '').toLowerCase().replace(/\s+/g, '-') ===
+                                  name.toLowerCase() ||
+                                (s.title || '').toLowerCase() === name.toLowerCase()
+                            )
+                            return matched ? (
+                              <button
+                                key={`pl-${idx}-${matched.id}`}
+                                onClick={(e) => {
+                                  e.preventDefault()
+                                  onSnippetMentionClick && onSnippetMentionClick(matched)
+                                }}
+                                className="mention-pill inline-block px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 text-xs border border-primary-300 dark:border-primary-700 hover:bg-primary-200 dark:hover:bg-primary-900/50"
+                                title={`Open snippet: ${matched.title}`}
+                              >
+                                {part}
+                              </button>
+                            ) : (
+                              <span
+                                key={`pl-${idx}-none`}
+                                className="inline-block px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 text-xs opacity-50"
+                                title="Snippet not found"
+                              >
+                                {part}
+                              </span>
+                            )
+                          }
+                        )}
+                      </div>
+                    )}
                   </div>
                 )}
               </div>
@@ -305,6 +464,8 @@ const SnippetEditor = ({
                   value={code}
                   ref={textareaRef}
                   onChange={(e) => setCode(e.target.value)}
+                  onInput={updateMention}
+                  onKeyUp={updateMention}
                   onKeyDown={handleKeyDown}
                   className="w-full h-full overflow-y-auto text-slate-800 dark:text-white p-4 font-mono text-sm resize-none border-none outline-none focus:outline-none focus:ring-0 leading-relaxed tracking-normal transition-colors duration-200 editor-textarea"
                   style={{ backgroundColor: 'var(--color-background)' }}
@@ -331,7 +492,12 @@ const SnippetEditor = ({
                   style={{ maxHeight: '100%' }}
                 >
                   {showMarkdown ? (
-                    <MarkdownPreview content={code} />
+                    <MarkdownPreview
+                      content={code}
+                      snippets={[...(snippets || []), ...(projects || [])]}
+                      language={language}
+                      onSnippetClick={onSnippetMentionClick}
+                    />
                   ) : (
                     <div className="p-4">
                       <pre className="text-xs font-mono leading-5 m-0">
@@ -340,6 +506,42 @@ const SnippetEditor = ({
                           dangerouslySetInnerHTML={{ __html: highlightedHtml }}
                         />
                       </pre>
+                      {/@[a-zA-Z0-9_.-]+/.test(code || '') && (
+                        <div className="mt-2 flex flex-wrap gap-1">
+                          {Array.from(new Set((code || '').match(/@[a-zA-Z0-9_.-]+/g) || [])).map(
+                            (part, idx) => {
+                              const name = part.slice(1)
+                              const matched = [...(snippets || []), ...(projects || [])].find(
+                                (s) =>
+                                  (s.title || '').toLowerCase().replace(/\s+/g, '-') ===
+                                    name.toLowerCase() ||
+                                  (s.title || '').toLowerCase() === name.toLowerCase()
+                              )
+                              return matched ? (
+                                <button
+                                  key={`pr-${idx}-${matched.id}`}
+                                  onClick={(e) => {
+                                    e.preventDefault()
+                                    onSnippetMentionClick && onSnippetMentionClick(matched)
+                                  }}
+                                  className="mention-pill inline-block px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 text-xs border border-primary-300 dark:border-primary-700 hover:bg-primary-200 dark:hover:bg-primary-900/50"
+                                  title={`Open snippet: ${matched.title}`}
+                                >
+                                  {part}
+                                </button>
+                              ) : (
+                                <span
+                                  key={`pr-${idx}-none`}
+                                  className="inline-block px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 text-xs opacity-50"
+                                  title="Snippet not found"
+                                >
+                                  {part}
+                                </span>
+                              )
+                            }
+                          )}
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
@@ -354,6 +556,8 @@ const SnippetEditor = ({
                     value={code}
                     ref={textareaRef}
                     onChange={(e) => setCode(e.target.value)}
+                    onInput={updateMention}
+                    onKeyUp={updateMention}
                     onKeyDown={handleKeyDown}
                     className="w-full h-full overflow-y-auto text-slate-800 dark:text-white p-4 font-mono text-sm resize-none border-none outline-none focus:outline-none focus:ring-0 leading-relaxed tracking-normal transition-colors duration-200 editor-textarea"
                     style={{ backgroundColor: 'var(--color-background)' }}
@@ -373,6 +577,8 @@ const SnippetEditor = ({
               value={code}
               ref={textareaRef}
               onChange={(e) => setCode(e.target.value)}
+              onInput={updateMention}
+              onKeyUp={updateMention}
               onKeyDown={handleKeyDown}
               className="w-full h-full overflow-y-auto text-slate-800 dark:text-white p-4 font-mono text-sm resize-none border-none outline-none focus:outline-none focus:ring-0 leading-relaxed tracking-normal transition-colors duration-200 editor-textarea"
               style={{ backgroundColor: 'var(--color-background)' }}
@@ -390,7 +596,12 @@ const SnippetEditor = ({
               style={{ maxHeight: '100%' }}
             >
               {showMarkdown ? (
-                <MarkdownPreview content={code} />
+                <MarkdownPreview
+                  content={code}
+                  snippets={[...(snippets || []), ...(projects || [])]}
+                  language={language}
+                  onSnippetClick={onSnippetMentionClick}
+                />
               ) : (
                 <div className="p-4">
                   <pre className="text-xs font-mono leading-5 m-0">
@@ -399,6 +610,42 @@ const SnippetEditor = ({
                       dangerouslySetInnerHTML={{ __html: highlightedHtml }}
                     />
                   </pre>
+                  {/@[a-zA-Z0-9_.-]+/.test(code || '') && (
+                    <div className="mt-2 flex flex-wrap gap-1">
+                      {Array.from(new Set((code || '').match(/@[a-zA-Z0-9_.-]+/g) || [])).map(
+                        (part, idx) => {
+                          const name = part.slice(1)
+                          const matched = [...(snippets || []), ...(projects || [])].find(
+                            (s) =>
+                              (s.title || '').toLowerCase().replace(/\s+/g, '-') ===
+                                name.toLowerCase() ||
+                              (s.title || '').toLowerCase() === name.toLowerCase()
+                          )
+                          return matched ? (
+                            <button
+                              key={`pp-${idx}-${matched.id}`}
+                              onClick={(e) => {
+                                e.preventDefault()
+                                onSnippetMentionClick && onSnippetMentionClick(matched)
+                              }}
+                              className="mention-pill inline-block px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 text-xs border border-primary-300 dark:border-primary-700 hover:bg-primary-200 dark:hover:bg-primary-900/50"
+                              title={`Open snippet: ${matched.title}`}
+                            >
+                              {part}
+                            </button>
+                          ) : (
+                            <span
+                              key={`pp-${idx}-none`}
+                              className="inline-block px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 text-xs opacity-50"
+                              title="Snippet not found"
+                            >
+                              {part}
+                            </span>
+                          )
+                        }
+                      )}
+                    </div>
+                  )}
                 </div>
               )}
             </div>
@@ -465,6 +712,44 @@ const SnippetEditor = ({
               }
             }}
           />
+        )}
+
+        {mentionOpen && (
+          <div
+            className="fixed text-sm"
+            style={{
+              position: 'fixed',
+              left: mentionPos.x,
+              top: mentionPos.y,
+              zIndex: 10000,
+              backgroundColor: 'rgba(255, 250, 200, 0.98)',
+              color: '#1f2937',
+              border: '2px solid #f59e0b',
+              borderRadius: 8,
+              boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+              pointerEvents: 'auto'
+            }}
+          >
+            {mentionItems.length > 0 ? (
+              mentionItems.map((s) => (
+                <button
+                  key={s.id}
+                  onMouseDown={(e) => {
+                    e.preventDefault()
+                    insertMention(s)
+                  }}
+                  className="flex items-center gap-2 px-3 py-2 w-full text-left hover:bg-yellow-100"
+                >
+                  <span className="font-medium text-slate-900 truncate">
+                    @{(s.title || '').toLowerCase().replace(/\s+/g, '-')}
+                  </span>
+                  <span className="text-xs text-slate-600 truncate">{s.title}</span>
+                </button>
+              ))
+            ) : (
+              <div className="px-3 py-2 text-slate-700">No matches</div>
+            )}
+          </div>
         )}
 
         {nameOpen && (
@@ -553,7 +838,9 @@ SnippetEditor.propTypes = {
   onDelete: PropTypes.func,
   onNewProject: PropTypes.func,
   isCreateMode: PropTypes.bool,
-  activeView: PropTypes.string
+  activeView: PropTypes.string,
+  snippets: PropTypes.array,
+  onSnippetMentionClick: PropTypes.func
 }
 
 export default SnippetEditor

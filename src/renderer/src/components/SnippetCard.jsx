@@ -5,6 +5,7 @@ import useHighlight from '../hook/useHighlight'
 import toCapitalized from '../hook/stringUtils'
 import { useToast } from '../utils/ToastNotification'
 import { Copy, Check, Eye, Trash2, Pencil } from 'lucide-react'
+import MarkdownPreview from './MarkdownPreview.jsx'
 
 const copyToClipboard = async (text) => {
   if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
@@ -34,12 +35,13 @@ const copyToClipboard = async (text) => {
     return false
   }
 }
-const SnippetCard = ({ snippet, onRequestDelete, onEdit }) => {
+const SnippetCard = ({ snippet, onRequestDelete, onEdit, snippets = [], projects = [] }) => {
   const [copied, setCopied] = useState(false)
   const { toast, showToast } = useToast()
 
   const highlightedContent = useHighlight(snippet.code, snippet.language)
   const isCode = !['text', 'txt'].includes(snippet.language)
+  const isMarkdownLike = /^(# |## |### |> |\* |\d+\. )/m.test(snippet.code || '') || /@\w+/.test(snippet.code || '')
 
   const handleCopy = async () => {
     const success = await copyToClipboard(snippet.code)
@@ -110,7 +112,14 @@ const SnippetCard = ({ snippet, onRequestDelete, onEdit }) => {
           onClick={handleEdit}
         >
           <div className="max-h-32 overflow-y-hidden p-3">
-            {isCode ? (
+            {isMarkdownLike ? (
+              <MarkdownPreview
+                content={snippet.code}
+                snippets={[...(snippets || []), ...(projects || [])]}
+                language={snippet.language}
+                onSnippetClick={(matched) => onEdit && onEdit(matched)}
+              />
+            ) : isCode ? (
               <pre className="text-xs font-mono leading-5 m-0">
                 <code
                   className="hljs block text-slate-600 dark:text-slate-300"
@@ -178,7 +187,9 @@ SnippetCard.propTypes = {
     timestamp: PropTypes.number.isRequired
   }).isRequired,
   onRequestDelete: PropTypes.func.isRequired,
-  onEdit: PropTypes.func.isRequired
+  onEdit: PropTypes.func.isRequired,
+  snippets: PropTypes.array,
+  projects: PropTypes.array
 }
 
 export default memo(SnippetCard)
