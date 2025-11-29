@@ -122,6 +122,29 @@ const SnippetEditor = ({
     [debouncedPreviewCode]
   )
   const highlightedHtml = useHighlight(debouncedPreviewCode || '', language)
+  const enhanceMentionsHtml = (html) => {
+    const safe = String(html || '')
+    return safe.replace(/@([a-zA-Z0-9_.-]+)/g, (m, p1) => {
+      const slug = String(p1 || '').toLowerCase()
+      return `<a href=\"#\" class=\"md-mention\" data-slug=\"${slug}\">@${p1}</a>`
+    })
+  }
+  const enhancedHtml = useMemo(() => enhanceMentionsHtml(highlightedHtml), [highlightedHtml])
+  const handleMentionClickInPreview = (e) => {
+    const el = e.target.closest && e.target.closest('.md-mention')
+    if (!el) return
+    e.preventDefault()
+    const slug = (el.getAttribute('data-slug') || '').toLowerCase()
+    const list = [...(snippets || []), ...(projects || [])]
+    const matched = list.find(
+      (s) =>
+        (s.title || '').toLowerCase().replace(/\s+/g, '-') === slug ||
+        (s.title || '').toLowerCase() === slug
+    )
+    if (matched && typeof onSnippetMentionClick === 'function') {
+      onSnippetMentionClick(matched)
+    }
+  }
   const isMarkdownHeuristic =
     /^(# |## |### |> |\* |\d+\. )/m.test(code || '') || /@\w+/.test(code || '')
   const isMarkdownLike =
@@ -407,49 +430,13 @@ const SnippetEditor = ({
                     onSnippetClick={onSnippetMentionClick}
                   />
                 ) : (
-                  <div className="p-4">
+                  <div className="p-4" onClick={handleMentionClickInPreview}>
                     <pre className="text-xs font-mono leading-5 m-0">
                       <code
                         className="hljs block text-slate-700 dark:text-slate-300"
-                        dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+                        dangerouslySetInnerHTML={{ __html: enhancedHtml }}
                       />
                     </pre>
-                    {/@[a-zA-Z0-9_.-]+/.test(code || '') && (
-                      <div className="mt-2 flex flex-wrap gap-1">
-                        {Array.from(new Set((code || '').match(/@[a-zA-Z0-9_.-]+/g) || [])).map(
-                          (part, idx) => {
-                            const name = part.slice(1)
-                            const matched = [...(snippets || []), ...(projects || [])].find(
-                              (s) =>
-                                (s.title || '').toLowerCase().replace(/\s+/g, '-') ===
-                                  name.toLowerCase() ||
-                                (s.title || '').toLowerCase() === name.toLowerCase()
-                            )
-                            return matched ? (
-                              <button
-                                key={`pl-${idx}-${matched.id}`}
-                                onClick={(e) => {
-                                  e.preventDefault()
-                                  onSnippetMentionClick && onSnippetMentionClick(matched)
-                                }}
-                                className="mention-pill inline-block px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 text-xs border border-primary-300 dark:border-primary-700 hover:bg-primary-200 dark:hover:bg-primary-900/50"
-                                title={`Open snippet: ${matched.title}`}
-                              >
-                                {part}
-                              </button>
-                            ) : (
-                              <span
-                                key={`pl-${idx}-none`}
-                                className="inline-block px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 text-xs opacity-50"
-                                title="Snippet not found"
-                              >
-                                {part}
-                              </span>
-                            )
-                          }
-                        )}
-                      </div>
-                    )}
                   </div>
                 )}
               </div>
@@ -499,49 +486,13 @@ const SnippetEditor = ({
                       onSnippetClick={onSnippetMentionClick}
                     />
                   ) : (
-                    <div className="p-4">
+                    <div className="p-4" onClick={handleMentionClickInPreview}>
                       <pre className="text-xs font-mono leading-5 m-0">
                         <code
                           className="hljs block text-slate-700 dark:text-slate-300"
-                          dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+                          dangerouslySetInnerHTML={{ __html: enhancedHtml }}
                         />
                       </pre>
-                      {/@[a-zA-Z0-9_.-]+/.test(code || '') && (
-                        <div className="mt-2 flex flex-wrap gap-1">
-                          {Array.from(new Set((code || '').match(/@[a-zA-Z0-9_.-]+/g) || [])).map(
-                            (part, idx) => {
-                              const name = part.slice(1)
-                              const matched = [...(snippets || []), ...(projects || [])].find(
-                                (s) =>
-                                  (s.title || '').toLowerCase().replace(/\s+/g, '-') ===
-                                    name.toLowerCase() ||
-                                  (s.title || '').toLowerCase() === name.toLowerCase()
-                              )
-                              return matched ? (
-                                <button
-                                  key={`pr-${idx}-${matched.id}`}
-                                  onClick={(e) => {
-                                    e.preventDefault()
-                                    onSnippetMentionClick && onSnippetMentionClick(matched)
-                                  }}
-                                  className="mention-pill inline-block px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 text-xs border border-primary-300 dark:border-primary-700 hover:bg-primary-200 dark:hover:bg-primary-900/50"
-                                  title={`Open snippet: ${matched.title}`}
-                                >
-                                  {part}
-                                </button>
-                              ) : (
-                                <span
-                                  key={`pr-${idx}-none`}
-                                  className="inline-block px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 text-xs opacity-50"
-                                  title="Snippet not found"
-                                >
-                                  {part}
-                                </span>
-                              )
-                            }
-                          )}
-                        </div>
-                      )}
                     </div>
                   )}
                 </div>
@@ -603,49 +554,13 @@ const SnippetEditor = ({
                   onSnippetClick={onSnippetMentionClick}
                 />
               ) : (
-                <div className="p-4">
+                <div className="p-4" onClick={handleMentionClickInPreview}>
                   <pre className="text-xs font-mono leading-5 m-0">
                     <code
                       className="hljs block text-slate-700 dark:text-slate-300"
-                      dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+                      dangerouslySetInnerHTML={{ __html: enhancedHtml }}
                     />
                   </pre>
-                  {/@[a-zA-Z0-9_.-]+/.test(code || '') && (
-                    <div className="mt-2 flex flex-wrap gap-1">
-                      {Array.from(new Set((code || '').match(/@[a-zA-Z0-9_.-]+/g) || [])).map(
-                        (part, idx) => {
-                          const name = part.slice(1)
-                          const matched = [...(snippets || []), ...(projects || [])].find(
-                            (s) =>
-                              (s.title || '').toLowerCase().replace(/\s+/g, '-') ===
-                                name.toLowerCase() ||
-                              (s.title || '').toLowerCase() === name.toLowerCase()
-                          )
-                          return matched ? (
-                            <button
-                              key={`pp-${idx}-${matched.id}`}
-                              onClick={(e) => {
-                                e.preventDefault()
-                                onSnippetMentionClick && onSnippetMentionClick(matched)
-                              }}
-                              className="mention-pill inline-block px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 text-xs border border-primary-300 dark:border-primary-700 hover:bg-primary-200 dark:hover:bg-primary-900/50"
-                              title={`Open snippet: ${matched.title}`}
-                            >
-                              {part}
-                            </button>
-                          ) : (
-                            <span
-                              key={`pp-${idx}-none`}
-                              className="inline-block px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-400 text-xs opacity-50"
-                              title="Snippet not found"
-                            >
-                              {part}
-                            </span>
-                          )
-                        }
-                      )}
-                    </div>
-                  )}
                 </div>
               )}
             </div>

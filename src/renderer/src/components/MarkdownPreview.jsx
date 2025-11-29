@@ -154,6 +154,7 @@ const renderWithTagsAndMentions = (children, snippets, onSnippetClick, language)
                 onSnippetClick(matchedSnippet)
               }}
               className="mention-pill inline-block px-2 py-0.5 rounded-full bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300 text-xs mr-1 align-middle hover:bg-primary-200 dark:hover:bg-primary-900/50 cursor-pointer transition-colors border border-primary-300 dark:border-primary-700 hover:underline"
+              style={{ pointerEvents: 'auto' }}
               title={`Open snippet: ${matchedSnippet.title}`}
             >
               {part}
