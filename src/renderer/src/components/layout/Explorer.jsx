@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { Search, Copy, Check, Eye, Trash2, Pencil, Plus } from 'lucide-react'
+import { Search, Trash2, Pencil, Plus, FileCode, FileText, Briefcase, Globe, CodeXml } from 'lucide-react'
 import SidebarHeader, { EmptyState } from './SidebarHeader'
 
 const Explorer = ({
@@ -16,23 +16,34 @@ const Explorer = ({
   onRenameRequest
 }) => {
   // Helper function to filter items based on search term
-  const getFileIcon = (language) => {
-    const icons = {
-      javascript: '📄',
-      python: '🐍',
-      html: '🌐',
-      css: '🎨',
-      json: '📋',
-      markdown: '📝',
-      java: '☕',
-      cpp: '⚙️',
-      typescript: '📘',
-      php: '🐘',
-      ruby: '💎',
-      go: '🔵',
-      rust: '🦀'
+  const getFileIcon = (item) => {
+    if (item.type === 'project') return <Briefcase size={14} className="text-slate-600 dark:text-slate-300" />
+    const title = String(item.title || '')
+    const ext = title.includes('.') ? title.split('.').pop().toLowerCase() : ''
+    const lang = (item.language || '').toLowerCase()
+    const pick = ext || lang
+    switch (pick) {
+      case 'js':
+      case 'jsx':
+        return <FileCode size={14} className="text-yellow-500" />
+      case 'ts':
+      case 'tsx':
+        return <FileCode size={14} className="text-blue-500" />
+      case 'py':
+        return <FileCode size={14} className="text-blue-600" />
+      case 'php':
+        return <FileCode size={14} className="text-violet-600" />
+      case 'html':
+        return <Globe size={14} className="text-orange-500" />
+      case 'css':
+        return <CodeXml size={14} className="text-teal-500" />
+      case 'md':
+      case 'markdown':
+      case 'txt':
+        return <FileText size={14} className="text-slate-500" />
+      default:
+        return <FileCode size={14} className="text-slate-600 dark:text-slate-300" />
     }
-    return icons[language?.toLowerCase()] || '📄'
   }
 
   // Get file extension from language
@@ -120,16 +131,14 @@ const Explorer = ({
                     group relative flex items-center gap-2 px-3 py-1.5 cursor-pointer select-none text-xs rounded-sm transition-colors duration-100
                     ${
                       isSelected
-                        ? 'bg-primary-600 text-white font-medium shadow-sm'
-                        : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-slate-100'
+                        ? 'bg-[var(--selected-bg)] text-[var(--selected-text)] font-medium shadow-sm'
+                        : 'text-slate-600 dark:text-[var(--text-main)] hover:bg-[var(--hover-bg)] hover:text-[var(--hover-text)]'
                     }
                   `}
                 >
                   {/* File Icon */}
-                  <span
-                    className={`flex-shrink-0 text-sm ${isSelected ? 'opacity-100' : 'opacity-80'}`}
-                  >
-                    {getFileIcon(item.language)}
+                  <span className={`flex-shrink-0 ${isSelected ? 'opacity-100' : 'opacity-80'} text-[#333] dark:text-slate-300`}>
+                    {getFileIcon(item)}
                   </span>
 
                   {/* Filename */}
@@ -152,8 +161,8 @@ const Explorer = ({
                       }}
                       className={`p-1 rounded transition-colors ${
                         isSelected
-                          ? 'hover:bg-primary-500 text-white'
-                          : 'hover:bg-white dark:hover:bg-slate-700 text-slate-400 hover:text-primary-500'
+                          ? 'hover:bg-[var(--hover-bg)] text-[var(--selected-text)]'
+                          : 'hover:bg-[var(--selected-bg)] text-slate-400 hover:text-[var(--hover-text)]'
                       }`}
                       title="Rename"
                     >
@@ -166,8 +175,8 @@ const Explorer = ({
                       }}
                       className={`p-1 rounded transition-colors ${
                         isSelected
-                          ? 'hover:bg-red-500 text-white'
-                          : 'hover:bg-white dark:hover:bg-slate-700 text-slate-400 hover:text-red-500'
+                          ? 'hover:bg-red-600 text-[var(--selected-text)]'
+                          : 'hover:bg-[var(--selected-bg)] text-slate-400 hover:text-red-500'
                       }`}
                       title="Delete"
                     >

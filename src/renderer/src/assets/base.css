@@ -24,11 +24,10 @@
 }
 
 :root {
-  --color-background: var(--ev-c-black);
-  --color-background-soft: var(--ev-c-black-soft);
-  --color-background-mute: var(--ev-c-black-mute);
-
-  --color-text: var(--ev-c-text-1);
+  --color-background: #181d27;
+  --color-background-soft: #181d27;
+  --color-background-mute: #0f172a;
+  --color-text: #e5e7eb;
 }
 
 *,

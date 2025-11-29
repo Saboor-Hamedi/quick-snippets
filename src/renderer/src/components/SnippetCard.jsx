@@ -39,7 +39,7 @@ const SnippetCard = ({ snippet, onRequestDelete, onEdit }) => {
   const { toast, showToast } = useToast()
 
   const highlightedContent = useHighlight(snippet.code, snippet.language)
-  const isCode = snippet.language !== 'text'
+  const isCode = !['text', 'txt'].includes(snippet.language)
 
   const handleCopy = async () => {
     const success = await copyToClipboard(snippet.code)

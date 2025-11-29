@@ -35,3 +35,7 @@
 ## ⚠️ Important: Restart Required
 
 The application main process has been updated to fix the list sorting order. **You must restart the application** (close and reopen) for the sorting changes to take effect.
+
+Great, now remove json theme all about json theme...
+Keep the ThemeModal, i have 4 theme.
+all of them should be black with text white but black like dark pitch dark a little dark a github them like that... the accent color is blue i hate that...

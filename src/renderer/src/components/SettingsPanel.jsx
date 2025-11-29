@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react'
 import { useToast } from '../utils/ToastNotification'
 import ThemeModal from './ThemeModal'
-import ThemeEditor from './ThemeEditor'
-import { SunMoon, FileDown, Settings, Palette } from 'lucide-react'
+import { SunMoon, FileDown, Settings } from 'lucide-react'
 
 const SettingsPanel = () => {
   const { showToast } = useToast()
@@ -11,7 +10,6 @@ const SettingsPanel = () => {
   const [fontSize, setFontSize] = useState(14)
   const [wordWrap, setWordWrap] = useState('on')
   const [autoSave, setAutoSave] = useState(false)
-  const [currentTheme, setCurrentTheme] = useState(null)
   const [activeTab, setActiveTab] = useState('general')
 
   // Modal State
@@ -49,11 +47,7 @@ const SettingsPanel = () => {
     }
   }
 
-  // Theme
-  const handleSaveTheme = (theme) => {
-    setCurrentTheme(theme)
-    showToast('✓ Theme saved successfully')
-  }
+  // Theme handled by ThemeModal only
 
   return (
     <div className="h-full flex bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-300 overflow-hidden transition-colors duration-200">
@@ -74,18 +68,6 @@ const SettingsPanel = () => {
           >
             <Settings size={18} />
             <span>General</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('theme')}
-            className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
-              activeTab === 'theme'
-                ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/30'
-                : 'text-slate-600 dark:text-slate-400 hover:bg-slate-200 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-            }`}
-          >
-            <Palette size={18} />
-            <span>Theme Editor</span>
           </button>
         </nav>
 
@@ -237,10 +219,6 @@ const SettingsPanel = () => {
                 </div>
               </section>
             </div>
-          )}
-
-          {activeTab === 'theme' && (
-            <ThemeEditor currentTheme={currentTheme} onSaveTheme={handleSaveTheme} />
           )}
         </div>
       </div>

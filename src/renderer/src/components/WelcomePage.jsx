@@ -2,7 +2,7 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import { FileCode, Folder, Command, Keyboard } from 'lucide-react'
 
-const WelcomePage = ({ onNewSnippet }) => {
+const WelcomePage = ({ onNewSnippet, onNewProject }) => {
   return (
     <div className="h-full flex items-center justify-center bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-900 dark:to-slate-800 transition-colors duration-200">
       <div className="max-w-2xl mx-auto px-8 text-center">
@@ -45,21 +45,20 @@ const WelcomePage = ({ onNewSnippet }) => {
             </div>
           </button>
 
-          <div className="group relative overflow-hidden bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl p-6 transition-all duration-200 text-left opacity-75">
+          <button
+            onClick={onNewProject}
+            className="group relative overflow-hidden bg-white dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-[#161b22] border-2 border-slate-200 dark:border-slate-700 hover:border-slate-300 dark:hover:border-[#30363d] rounded-xl p-6 transition-all duration-200 text-left"
+          >
             <div className="flex items-start gap-4">
-              <div className="p-3 bg-slate-100 dark:bg-slate-700 rounded-lg">
-                <Folder className="w-6 h-6 text-slate-600 dark:text-slate-400" />
+              <div className="p-3 bg-slate-100 dark:bg-[#161b22] rounded-lg group-hover:scale-110 transition-transform">
+                <Folder className="w-6 h-6 text-slate-600 dark:text-slate-300" />
               </div>
               <div className="flex-1">
-                <h3 className="font-semibold text-slate-900 dark:text-white mb-1">
-                  Browse Snippets
-                </h3>
-                <p className="text-sm text-slate-600 dark:text-slate-400">
-                  Click any snippet in the sidebar
-                </p>
+                <h3 className="font-semibold text-slate-900 dark:text-white mb-1">New Project</h3>
+                <p className="text-sm text-slate-600 dark:text-slate-400">Create a new project</p>
               </div>
             </div>
-          </div>
+          </button>
         </div>
 
         {/* Keyboard Shortcuts */}
@@ -131,7 +130,8 @@ const WelcomePage = ({ onNewSnippet }) => {
 }
 
 WelcomePage.propTypes = {
-  onNewSnippet: PropTypes.func.isRequired
+  onNewSnippet: PropTypes.func.isRequired,
+  onNewProject: PropTypes.func.isRequired
 }
 
 export default WelcomePage

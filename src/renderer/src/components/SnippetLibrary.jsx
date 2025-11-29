@@ -6,9 +6,7 @@ import SidebarHeader from './layout/SidebarHeader'
 import ActivityBar from './layout/ActivityBar'
 import Sidebar from './layout/Sidebar'
 import Workbench from './workbench/Workbench'
-import DeleteModel from '../utils/DeleteModel'
 import CreateProjectModal from './CreateProjectModal'
-import RenameModal from './RenameModal'
 import CommandPalette from './CommandPalette'
 
 const SnippetLibrary = () => {
@@ -26,7 +24,7 @@ const SnippetLibrary = () => {
   } = useSnippetData()
 
   // 2. UI STATE (Local only)
-  const [activeView, setActiveView] = useState('welcome')
+  const [activeView, setActiveView] = useState('editor')
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
 
@@ -34,9 +32,22 @@ const SnippetLibrary = () => {
   const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, title: '' })
   const [createProjectModalOpen, setCreateProjectModalOpen] = useState(false)
   const [renameModal, setRenameModal] = useState({ isOpen: false, item: null })
+  const [renameInput, setRenameInput] = useState('')
   const [isCreatingSnippet, setIsCreatingSnippet] = useState(false)
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
   const { toast, showToast } = useToast()
+  const [activeSnippet, setActiveSnippet] = useState(null)
+  const [activeProject, setActiveProject] = useState(null)
+
+  // Ensure only items of current view are open
+  useEffect(() => {
+    if (isCreatingSnippet) return
+    if (activeView === 'projects') {
+      setSelectedSnippet(activeProject || null)
+    } else if (activeView === 'snippets' || activeView === 'markdown') {
+      setSelectedSnippet(activeSnippet || null)
+    }
+  }, [activeView, activeSnippet, activeProject, isCreatingSnippet])
   // 3. Search Filter Logic
   const filteredItems = useMemo(() => {
     // A. Handle Projects
@@ -126,9 +137,16 @@ const SnippetLibrary = () => {
         setIsCreatingSnippet(true)
       }
       // Ctrl+Shift+N creates new project
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'N') {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'n') {
         e.preventDefault()
         setCreateProjectModalOpen(true)
+      }
+      // Ctrl+Shift+W goes to Welcome page
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'w') {
+        e.preventDefault()
+        setSelectedSnippet(null)
+        setIsCreatingSnippet(false)
+        setActiveView('welcome')
       }
       // Ctrl+P toggles Command Palette
       if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
@@ -150,8 +168,34 @@ const SnippetLibrary = () => {
   const handleRename = async (newName) => {
     if (!renameModal.item) return
 
-    // 1. Prepare the updated object
-    const updatedItem = { ...renameModal.item, title: newName }
+    const baseName = (newName || '').trim()
+    if (!baseName) return
+    const updatedItem = { ...renameModal.item, title: baseName }
+    const hasExt = /\.[^\.\s]+$/.test(baseName)
+    const extMap = {
+      js: 'js',
+      jsx: 'js',
+      ts: 'js',
+      py: 'py',
+      html: 'html',
+      css: 'css',
+      json: 'json',
+      sql: 'sql',
+      cpp: 'cpp',
+      h: 'cpp',
+      java: 'java',
+      sh: 'sh',
+      md: 'md',
+      txt: 'txt'
+    }
+    let lang = renameModal.item.language
+    if (hasExt) {
+      const ext = baseName.split('.').pop().toLowerCase()
+      lang = extMap[ext] || lang
+    } else {
+      lang = 'txt'
+    }
+    updatedItem.language = lang
     const isProject = renameModal.item.type === 'project'
 
     // 2. Update the selected item immediately (optimistic update)
@@ -202,8 +246,25 @@ const SnippetLibrary = () => {
             searchTerm={searchTerm}
             setSearchTerm={setSearchTerm}
             selectedSnippet={selectedSnippet}
-            onSelect={(item) => {
-              setSelectedSnippet(item)
+            onSelect={async (item) => {
+              if (selectedSnippet && selectedSnippet.title) {
+                const prev = selectedSnippet
+                if (prev.type === 'project') {
+                  await saveProject(prev, { skipSelectedUpdate: true })
+                } else {
+                  await saveSnippet(prev, { skipSelectedUpdate: true })
+                }
+              }
+              setIsCreatingSnippet(false)
+              if (item?.type === 'project') {
+                setActiveProject(item)
+                setSelectedSnippet(item)
+                setActiveView('projects')
+              } else {
+                setActiveSnippet(item)
+                setSelectedSnippet(item)
+                setActiveView('snippets')
+              }
               if (activeView === 'settings') {
                 setActiveView('snippets')
               }
@@ -211,25 +272,43 @@ const SnippetLibrary = () => {
             // Wiring up actions
             onDeleteRequest={(id) => {
               const item = filteredItems.find((i) => i.id === id)
-              setDeleteModal({ isOpen: true, id, title: item?.title || 'Item' })
+              const title = item?.title || 'Item'
+              const ok = window.confirm(`Delete "${title}"?`)
+              if (ok) {
+                deleteItem(id)
+              }
             }}
             onCreateProject={() => setCreateProjectModalOpen(true)}
             onCreateSnippet={() => setIsCreatingSnippet(true)}
-            onRenameRequest={(item) => setRenameModal({ isOpen: true, item })}
+            onRenameRequest={(item) => {
+              setRenameInput(item?.title || '')
+              setRenameModal({ isOpen: true, item })
+            }}
           />
         </div>
       )}
       {/* Main Workbench */}
-      <div className="flex-1 flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
+      <div className="flex-1 flex flex-col items-stretch min-h-0 overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
         <Workbench
           activeView={isCreatingSnippet ? 'editor' : activeView}
-          selectedSnippet={selectedSnippet}
+          selectedSnippet={activeView === 'projects' ? activeProject : selectedSnippet}
           snippets={snippets}
           projects={projects}
           onCloseSnippet={() => setSelectedSnippet(null)}
           onCancelEditor={() => setIsCreatingSnippet(false)}
           onSave={(item) => {
-            saveSnippet(item)
+            const isProject =
+              item.type === 'project' ||
+              projects.some((p) => p.id === item.id) ||
+              activeView === 'projects'
+
+            if (isProject) {
+              saveProject(item)
+              setActiveProject(item)
+            } else {
+              saveSnippet(item)
+              setActiveSnippet(item)
+            }
             // If we were creating a new snippet, switch to viewing/editing it
             // so the editor doesn't close or reset.
             if (isCreatingSnippet) {
@@ -244,23 +323,24 @@ const SnippetLibrary = () => {
           onNewSnippet={() => setIsCreatingSnippet(true)}
           onNewProject={() => setCreateProjectModalOpen(true)}
           onChange={(code) => {
-            if (selectedSnippet) {
-              setSelectedSnippet({ ...selectedSnippet, code })
+            if (activeView === 'projects') {
+              if (activeProject) {
+                const updated = { ...activeProject, code }
+                setActiveProject(updated)
+                setSelectedSnippet(updated)
+              }
+            } else {
+              if (selectedSnippet) {
+                const updated = { ...selectedSnippet, code }
+                setActiveSnippet(updated)
+                setSelectedSnippet(updated)
+              }
             }
           }}
         />
       </div>
 
       {/* Modals */}
-      <DeleteModel
-        isOpen={deleteModal.isOpen}
-        onClose={() => setDeleteModal({ ...deleteModal, isOpen: false })}
-        onConfirm={() => {
-          deleteItem(deleteModal.id) // Call Hook
-          setDeleteModal({ ...deleteModal, isOpen: false }) // Close Modal
-        }}
-        snippetTitle={deleteModal.title}
-      />
 
       <CreateProjectModal
         isOpen={createProjectModalOpen}
@@ -271,13 +351,46 @@ const SnippetLibrary = () => {
         }}
       />
 
-      <RenameModal
-        isOpen={renameModal.isOpen}
-        onClose={() => setRenameModal({ ...renameModal, isOpen: false })}
-        onRename={handleRename}
-        currentName={renameModal.item?.title || ''}
-        title={`Rename ${renameModal.item?.type === 'project' ? 'Project' : 'Snippet'}`}
-      />
+      {renameModal.isOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+          <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4 border border-slate-200 dark:border-slate-700">
+            <div className="p-4 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
+              <h3 className="text-lg font-semibold text-slate-900 dark:text-white">
+                {`Rename ${renameModal.item?.type === 'project' ? 'Project' : 'Snippet'}`}
+              </h3>
+              <button
+                onClick={() => setRenameModal({ ...renameModal, isOpen: false })}
+                className="text-slate-400 hover:text-slate-500 dark:hover:text-slate-300"
+              >
+                ✖
+              </button>
+            </div>
+            <div className="p-4">
+              <label className="block text-sm mb-1 text-slate-700 dark:text-slate-300">Name</label>
+              <input
+                value={renameInput}
+                onChange={(e) => setRenameInput(e.target.value)}
+                placeholder="Enter name (optionally with extension)"
+                className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500"
+              />
+              <div className="flex justify-end gap-2 mt-3">
+                <button
+                  onClick={() => setRenameModal({ ...renameModal, isOpen: false })}
+                  className="px-4 py-2 text-sm bg-slate-100 dark:bg-slate-700 text-slate-700 dark:text-slate-300 rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => handleRename(renameInput)}
+                  className="px-4 py-2 text-sm bg-primary-600 hover:bg-primary-700 text-white rounded"
+                >
+                  Rename
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
 
       <CommandPalette
         isOpen={isCommandPaletteOpen}

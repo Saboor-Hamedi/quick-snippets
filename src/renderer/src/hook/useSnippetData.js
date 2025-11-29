@@ -28,17 +28,23 @@ export const useSnippetData = () => {
   }, [showToast]) // showToast is a dependency
 
   // Save or update a snippet
-  const saveSnippet = async (snippet) => {
+  const saveSnippet = async (snippet, options = {}) => {
     try {
       if (window.api?.saveSnippet) {
         await window.api.saveSnippet(snippet)
-        // Reload snippets
-        const loadedSnippets = await window.api.getSnippets()
-        setSnippets(loadedSnippets || [])
+        // Update local list in-place to avoid flicker
+        setSnippets((prev) => {
+          const exists = prev.some((s) => s.id === snippet.id)
+          return exists
+            ? prev.map((s) => (s.id === snippet.id ? { ...s, ...snippet } : s))
+            : [{ ...snippet }, ...prev]
+        })
         // C. IMPORTANT: Update the Active View Immediately!
         // If the item we just saved is the one currently open, update the state.
-        if (selectedSnippet && selectedSnippet.id === snippet.id) {
-          setSelectedSnippet(snippet)
+        if (!options.skipSelectedUpdate) {
+          if (selectedSnippet && selectedSnippet.id === snippet.id) {
+            setSelectedSnippet(snippet)
+          }
         }
         showToast('✓ Snippet saved successfully')
       }
@@ -98,13 +104,23 @@ export const useSnippetData = () => {
   }
 
   // Save or update a project (for renaming/editing existing projects)
-  const saveProject = async (project) => {
+  const saveProject = async (project, options = {}) => {
     try {
       if (window.api?.saveProject) {
         await window.api.saveProject(project)
-        // Reload projects
-        const loadedProjects = await window.api.getProjects()
-        setProjects(loadedProjects || [])
+        // Update local list in-place to avoid flicker
+        setProjects((prev) => {
+          const exists = prev.some((p) => p.id === project.id)
+          return exists
+            ? prev.map((p) => (p.id === project.id ? { ...p, ...project } : p))
+            : [{ ...project }, ...prev]
+        })
+        // Update selected item immediately if it's the one being edited
+        if (!options.skipSelectedUpdate) {
+          if (selectedSnippet && selectedSnippet.id === project.id) {
+            setSelectedSnippet(project)
+          }
+        }
         showToast('✓ Project saved successfully')
       }
     } catch (error) {

@@ -35,12 +35,7 @@ export const useTheme = () => {
       '--ev-c-gray-1'
     ].forEach((prop) => root.style.removeProperty(prop))
 
-    // 4. Persist (Electron or LocalStorage)
-    if (window.api?.saveSetting) {
-      window.api.saveSetting('theme', themeId)
-    } else {
-      localStorage.setItem('theme', themeId)
-    }
+    // 4. No persistence (removed JSON/local storage saving)
   }
 
   return { currentTheme, setTheme }

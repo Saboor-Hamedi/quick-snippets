@@ -12,16 +12,16 @@
   --ev-c-white-soft: #f8fafc;
   --ev-c-white-mute: #f1f5f9;
 
-  --ev-c-black: #020617;
-  --ev-c-black-soft: #0f172a;
-  --ev-c-black-mute: #1e293b;
+  --ev-c-black: #0d1117; /* GitHub Dark */
+  --ev-c-black-soft: #161b22; /* Sidebar surface */
+  --ev-c-black-mute: #30363d; /* Border/selected */
 
   --ev-c-gray-1: #94a3b8;
   --ev-c-gray-2: #64748b;
   --ev-c-gray-3: #475569;
 
-  --ev-c-accent: #0ea5e9;
-  --ev-c-accent-hover: #0284c7;
+  --ev-c-accent: var(--ev-c-black-soft);
+  --ev-c-accent-hover: var(--ev-c-black-mute);
 
   /* Default to Dark Theme */
   --color-background: var(--ev-c-black);
@@ -36,14 +36,37 @@
 
   --activity-bar-width: 60px;
   --sidebar-width: 300px;
+
+  /* GitHub UI semantic variables */
+  --editor-bg: #0d1117;
+  --workbench-bg: #161b22;
+  --text-main: #c9d1d9;
+  --border-color: #30363d;
+  --accent: #58a6ff;
+  --selection-bg: rgba(88, 166, 255, 0.15);
+  --selected-bg: #30363d;
+  --selected-text: #ffffff;
+  --hover-bg: #21262d;
+  --hover-text: #ffffff;
+  --toolbar-height: 40px;
 }
 
 /* Light Theme */
 [data-theme='light'] {
-  --color-background: var(--ev-c-white);
-  --color-background-soft: var(--ev-c-white-soft);
-  --color-background-mute: var(--ev-c-white-mute);
-  --color-text: var(--ev-c-black);
+  --color-background: #f6f8fa; /* workbench */
+  --color-background-soft: #ffffff; /* editor */
+  --color-background-mute: #eef1f5; /* subtle */
+  --color-text: #24292f;
+  --editor-bg: #ffffff;
+  --workbench-bg: #f6f8fa;
+  --text-main: #24292f;
+  --border-color: #d0d7de;
+  --accent: #0969da;
+  --selection-bg: rgba(9, 105, 218, 0.15);
+  --selected-bg: #e2eef7;
+  --selected-text: #24292f;
+  --hover-bg: #eef6ff;
+  --hover-text: #24292f;
 }
 
 /* Dark Theme */
@@ -52,34 +75,66 @@
   --color-background-soft: var(--ev-c-black-soft);
   --color-background-mute: var(--ev-c-black-mute);
   --color-text: var(--ev-c-white-soft);
+  --editor-bg: #0d1117;
+  --workbench-bg: #161b22;
+  --text-main: #c9d1d9;
+  --border-color: #30363d;
+  --accent: #58a6ff;
+  --selection-bg: rgba(88, 166, 255, 0.15);
+  --selected-bg: #30363d;
+  --selected-text: #ffffff;
+  --hover-bg: #21262d;
+  --hover-text: #ffffff;
 }
 
-/* Midnight Theme (Deep Blue/Purple) */
+/* Midnight Theme (neutralized to black scheme) */
 [data-theme='midnight'] {
-  --ev-c-black: #0b0c15;
-  --ev-c-black-soft: #151621;
-  --ev-c-black-mute: #2a2b3d;
-  --ev-c-accent: #6366f1; /* Indigo */
-  --ev-c-accent-hover: #4f46e5;
+  --ev-c-black: #181d27;
+  --ev-c-black-soft: #181d27;
+  --ev-c-black-mute: #0f172a;
+  --ev-c-accent: var(--ev-c-black-soft);
+  --ev-c-accent-hover: var(--ev-c-black-mute);
 
   --color-background: var(--ev-c-black);
   --color-background-soft: var(--ev-c-black-soft);
   --color-background-mute: var(--ev-c-black-mute);
-  --color-text: #e0e7ff;
+  --color-text: #e5e7eb;
 }
 
-/* Ocean Theme (Deep Teal/Cyan) */
+/* Ocean Theme (neutralized to black scheme) */
 [data-theme='ocean'] {
-  --ev-c-black: #041319;
-  --ev-c-black-soft: #082f3a;
-  --ev-c-black-mute: #0e4b5b;
-  --ev-c-accent: #06b6d4; /* Cyan */
-  --ev-c-accent-hover: #0891b2;
+  --color-background: #2d333b;
+  --color-background-soft: #22272e;
+  --color-background-mute: #2d333b;
+  --color-text: #adbac7;
+  --editor-bg: #22272e;
+  --workbench-bg: #2d333b;
+  --text-main: #adbac7;
+  --border-color: #444c56;
+  --accent: #539bf5;
+  --selection-bg: rgba(83, 155, 245, 0.15);
+  --selected-bg: #373e47;
+  --selected-text: #adbac7;
+  --hover-bg: #2d333b;
+  --hover-text: #f0f6fc;
+}
 
-  --color-background: var(--ev-c-black);
-  --color-background-soft: var(--ev-c-black-soft);
-  --color-background-mute: var(--ev-c-black-mute);
-  --color-text: #cffafe;
+/* Universe (High Contrast) */
+[data-theme='universe'] {
+  --color-background: #1f2428;
+  --color-background-soft: #0b0e14;
+  --color-background-mute: #1f2428;
+  --color-text: #f0f6fc;
+  --editor-bg: #0b0e14;
+  --workbench-bg: #1f2428;
+  --text-main: #f0f6fc;
+  --border-color: #6e40c9;
+  --accent: #8957e5;
+  --selection-bg: rgba(137, 87, 229, 0.2);
+  --selected-bg: #2b2f36;
+  --selected-text: #f0f6fc;
+  --hover-bg: #23262c;
+  --hover-text: #f0f6fc;
 }
 
 /* Base Styles */
@@ -173,8 +228,8 @@ body {
 }
 
 .activity-bar-item.active {
-  color: var(--ev-c-accent);
-  background-color: rgba(14, 165, 233, 0.1);
+  color: #ffffff;
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .activity-bar-item.active::before {
@@ -185,9 +240,9 @@ body {
   transform: translateY(-50%);
   width: 4px;
   height: 1.5rem;
-  background-color: var(--ev-c-accent);
+  background-color: var(--ev-c-black-mute);
   border-radius: 0 4px 4px 0;
-  box-shadow: 0 0 10px var(--ev-c-accent);
+  box-shadow: none;
 }
 
 /* Sidebar */
@@ -197,13 +252,14 @@ body {
   left: var(--activity-bar-width);
   height: 100%;
   width: var(--sidebar-width);
-  background-color: rgba(15, 23, 42, 0.95); /* High opacity for readability */
+  background-color: var(--ev-c-black-soft);
   backdrop-filter: blur(12px);
   border-right: 1px solid var(--ev-c-black-mute);
   display: flex;
   flex-direction: column;
   transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   z-index: 40;
+  color: #ffffff;
 }
 
 .sidebar.collapsed {
@@ -243,9 +299,35 @@ body {
 
 .search-input:focus {
   outline: none;
-  border-color: var(--ev-c-accent);
-  box-shadow: 0 0 0 2px rgba(14, 165, 233, 0.2);
-  background-color: rgba(30, 41, 59, 0.8);
+  border-color: var(--ev-c-black-mute);
+  box-shadow: 0 0 0 2px rgba(48, 54, 61, 0.4);
+  background-color: rgba(22, 27, 34, 0.9);
+}
+
+/* Dark theme overrides to enforce black background and white text */
+.dark .bg-slate-800,
+.dark .bg-slate-900,
+.dark .bg-slate-950,
+.dark .bg-slate-700 {
+  background-color: #0d1117 !important;
+}
+.dark .text-slate-200,
+.dark .text-slate-300,
+.dark .text-slate-400,
+.dark .text-slate-500 {
+  color: #ffffff !important;
+}
+.dark .border-slate-700,
+.dark .border-slate-800 {
+  border-color: #30363d !important;
+}
+.dark .hover\:bg-slate-800:hover,
+.dark .hover\:bg-slate-900:hover {
+  background-color: #21262d !important;
+}
+.dark .hover\:text-slate-100:hover,
+.dark .hover\:text-slate-200:hover {
+  color: #ffffff !important;
 }
 
 /* Buttons */

@@ -58,12 +58,8 @@ const ThemeModal = ({ isOpen, onClose }) => {
         {/* Header */}
         <div className="p-6 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center shrink-0">
           <div>
-            <h2 className="text-2xl font-light text-slate-900 dark:text-white">
-              Select Color Theme
-            </h2>
-            <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
-              Choose a theme that fits your style.
-            </p>
+            <h2 className="text-2xl font-medium text-slate-900 dark:text-slate-200">Theme</h2>
+            <p className="text-sm text-slate-600 dark:text-slate-400 mt-1">The UI uses a clean all‑black theme with soft, readable text.</p>
           </div>
           <button
             onClick={onClose}
@@ -86,11 +82,10 @@ const ThemeModal = ({ isOpen, onClose }) => {
           {themes.map((theme) => {
             const isActive = currentTheme === theme.id
 
-            // Extracted classes for readability
             const activeClasses =
-              'border-primary-500 bg-primary-50/50 dark:bg-primary-900/20 ring-1 ring-primary-500/50'
+              'border-[#30363d] bg-[#161b22] ring-1 ring-[#30363d]'
             const inactiveClasses =
-              'border-slate-200 dark:border-slate-700 hover:border-primary-400/50 hover:bg-slate-50 dark:hover:bg-slate-800/50'
+              'border-[#30363d] hover:bg-[#161b22]'
 
             return (
               <button
@@ -106,7 +101,7 @@ const ThemeModal = ({ isOpen, onClose }) => {
                     {theme.icon}
                   </span>
                   {isActive && (
-                    <span className="bg-primary-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+                    <span className="bg-[#30363d] text-white text-[10px] font-semibold px-2 py-1 rounded">
                       Active
                     </span>
                   )}
@@ -121,7 +116,6 @@ const ThemeModal = ({ isOpen, onClose }) => {
                   {theme.description}
                 </p>
 
-                {/* Color Preview Swatches */}
                 <div className="flex gap-2 mt-auto pt-3 border-t border-slate-200/50 dark:border-slate-700/50">
                   {theme.previewColors.map((colorClass, idx) => (
                     <div
@@ -137,11 +131,8 @@ const ThemeModal = ({ isOpen, onClose }) => {
 
         {/* Footer */}
         <div className="p-4 border-t border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 flex justify-end shrink-0">
-          <button
-            onClick={onClose}
-            className="px-6 py-2 bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-medium rounded-lg hover:opacity-90 transition-opacity shadow-lg shadow-primary-500/10"
-          >
-            Done
+          <button onClick={onClose} className="px-6 py-2 bg-slate-800 text-slate-200 font-medium rounded-lg hover:bg-slate-700 transition-colors">
+            Close
           </button>
         </div>
       </div>
