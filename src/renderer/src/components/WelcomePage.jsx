@@ -116,6 +116,22 @@ const WelcomePage = ({ onNewSnippet, onNewProject }) => {
                 </kbd>
               </div>
             </div>
+            <div className="flex items-center justify-between p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-700/50">
+              <span className="text-slate-600 dark:text-slate-400">Copy Snippet</span>
+              <div className="flex items-center gap-1">
+                <kbd className="px-2 py-1 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-xs font-mono">
+                  Ctrl
+                </kbd>
+                <span className="text-slate-400">+</span>
+                <kbd className="px-2 py-1 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-xs font-mono">
+                  Shift
+                </kbd>
+                <span className="text-slate-400">+</span>
+                <kbd className="px-2 py-1 bg-slate-100 dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded text-xs font-mono">
+                  C
+                </kbd>
+              </div>
+            </div>
           </div>
         </div>
 

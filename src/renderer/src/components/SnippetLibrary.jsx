@@ -157,10 +157,32 @@ const SnippetLibrary = () => {
         e.preventDefault()
         setIsCommandPaletteOpen((prev) => !prev)
       }
+      // Ctrl+Shift+C copies selected snippet to clipboard
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'c') {
+        e.preventDefault()
+        if (selectedSnippet && selectedSnippet.code) {
+          navigator.clipboard
+            .writeText(selectedSnippet.code)
+            .then(() => {
+              showToast('✓ Snippet copied to clipboard')
+            })
+            .catch(() => {
+              showToast('❌ Failed to copy snippet')
+            })
+        }
+      }
     }
     document.addEventListener('keydown', handleKeyPress)
     return () => document.removeEventListener('keydown', handleKeyPress)
-  }, [createProjectModalOpen, renameModal.isOpen, isCreatingSnippet, isCommandPaletteOpen])
+  }, [
+    createProjectModalOpen,
+    renameModal.isOpen,
+    isCreatingSnippet,
+    isCommandPaletteOpen,
+    selectedSnippet,
+    showToast,
+    activeView
+  ])
 
   // 6. Rename Logic -- This is where the rename modal is triggered and the rename is handled
   const handleRename = async (newName) => {
