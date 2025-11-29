@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react'
 import { useToast } from '../utils/ToastNotification'
 import { useSnippetData } from '../hook/useSnippetData'
-
+import SidebarHeader from './layout/SidebarHeader'
 // Components
 import ActivityBar from './layout/ActivityBar'
 import Sidebar from './layout/Sidebar'
@@ -21,7 +21,8 @@ const SnippetLibrary = () => {
     saveSnippet,
     saveProject,
     deleteItem,
-    createProject
+    createProject,
+    onNewSnippet
   } = useSnippetData()
 
   // 2. UI STATE (Local only)
@@ -35,22 +36,38 @@ const SnippetLibrary = () => {
   const [renameModal, setRenameModal] = useState({ isOpen: false, item: null })
   const [isCreatingSnippet, setIsCreatingSnippet] = useState(false)
   const [isCommandPaletteOpen, setIsCommandPaletteOpen] = useState(false)
-
   const { toast, showToast } = useToast()
-
   // 3. Search Filter Logic
   const filteredItems = useMemo(() => {
-    const items = activeView === 'projects' ? projects : snippets
+    // A. Handle Projects
+    if (activeView === 'projects') return projects
+
+    // B. Handle Markdown
+    if (activeView === 'markdown') {
+      const items = snippets.filter(
+        (s) => s.language === 'markdown' || s.title.toLowerCase().endsWith('.md')
+      )
+      if (!searchTerm.trim()) return items
+      return items.filter((item) => item.title.toLowerCase().includes(searchTerm.toLowerCase()))
+    }
+
+    // C. Default (All Snippets)
+    const items = snippets.filter(
+      (s) =>
+        s.type !== 'markdown' &&
+        s.language !== 'markdown' &&
+        !String(s.title || '')
+          .toLowerCase()
+          .endsWith('.md')
+    )
     if (!searchTerm.trim()) return items
-    const searchLower = searchTerm.toLowerCase()
 
     return items.filter(
       (item) =>
-        item.title.toLowerCase().includes(searchLower) ||
-        (item.language && item.language.toLowerCase().includes(searchLower))
+        item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        (item.language && item.language.toLowerCase().includes(searchTerm.toLowerCase()))
     )
   }, [snippets, projects, searchTerm, activeView])
-
   // 4. Global Actions (e.g. Opening a file from OS)
   const handleOpenFile = async () => {
     try {
@@ -65,7 +82,7 @@ const SnippetLibrary = () => {
             id: Date.now().toString(),
             title: fileName,
             code: content,
-            language: extension || 'text',
+            language: extension || 'txt',
             timestamp: Date.now(),
             type: 'snippet'
           }
@@ -84,11 +101,11 @@ const SnippetLibrary = () => {
   useEffect(() => {
     const handleKeyPress = (e) => {
       // Prevent Ctrl+R (Reload)
-      if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
-        e.preventDefault()
-        console.log('Reload prevented')
-        return
-      }
+      // if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
+      //   e.preventDefault()
+      //   console.log('Reload prevented')
+      //   return
+      // }
 
       // Escape closes modals and editor
       if (e.key === 'Escape') {
@@ -159,8 +176,10 @@ const SnippetLibrary = () => {
       }
     } finally {
       setRenameModal({ isOpen: false, item: null })
+      setIsCreatingSnippet(false)
     }
   }
+
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white overflow-hidden transition-colors duration-200">
       {toast && <div className="toast">{toast}</div>}
@@ -174,7 +193,7 @@ const SnippetLibrary = () => {
         />
       </div>
 
-      {/* Sidebar - Collapsible */}
+      {/* Sidebar - Collapsible (hidden in markdown view) */}
       {!sidebarCollapsed && (
         <div className="w-80 flex-shrink-0 border-r border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 transition-colors duration-200">
           <Sidebar
@@ -200,7 +219,6 @@ const SnippetLibrary = () => {
           />
         </div>
       )}
-
       {/* Main Workbench */}
       <div className="flex-1 flex flex-col overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
         <Workbench
@@ -210,15 +228,21 @@ const SnippetLibrary = () => {
           projects={projects}
           onCloseSnippet={() => setSelectedSnippet(null)}
           onCancelEditor={() => setIsCreatingSnippet(false)}
-          onSave={(code) => {
-            saveSnippet(code)
-            setIsCreatingSnippet(false)
+          onSave={(item) => {
+            const needsName = !/\.[a-z0-9]+$/i.test(String(item.title || ''))
+            if (needsName) {
+              setRenameModal({ isOpen: true, item })
+            } else {
+              saveSnippet(item)
+              setIsCreatingSnippet(false)
+            }
           }}
           onDeleteRequest={(id) => {
             const item = [...snippets, ...projects].find((i) => i.id === id)
             setDeleteModal({ isOpen: true, id, title: item?.title || 'Item' })
           }}
           onNewSnippet={() => setIsCreatingSnippet(true)}
+          onNewProject={() => setCreateProjectModalOpen(true)}
           onChange={(code) => {
             if (selectedSnippet) {
               setSelectedSnippet({ ...selectedSnippet, code })

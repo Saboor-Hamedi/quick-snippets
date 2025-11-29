@@ -96,7 +96,7 @@ const SnippetCard = ({ snippet, onRequestDelete, onEdit }) => {
 
   return (
     <div
-      className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700 
+      className="bg-white dark:bg-slate-800 rounded-lg shadow-sm border border-slate-200 dark:border-slate-700
         group transition-all hover:border-primary-500/50 hover:shadow-md
         min-h-[200px] flex flex-col"
     >

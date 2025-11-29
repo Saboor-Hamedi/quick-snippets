@@ -4,14 +4,16 @@ import React from 'react'
 import PropTypes from 'prop-types'
 import useHighlight from '../hook/useHighlight'
 import toCapitalized from '../hook/stringUtils'
-import { Copy, X, Pencil } from 'lucide-react'
+import { Copy, Pencil } from 'lucide-react'
+import DocumentHeader from './layout/DocumentHeader'
+import SidebarHeader from './layout/SidebarHeader'
 
 const SnippetViewer = ({ snippet, onClose, onEdit }) => {
-  const highlightedContent = useHighlight(snippet?.code || '', snippet?.language || 'text')
+  const highlightedContent = useHighlight(snippet?.code || '', snippet?.language || 'txt')
 
   if (!snippet) return null
 
-  const isCode = snippet.language !== 'text'
+  const isCode = (snippet.language || '') !== 'txt'
   const codeLines = snippet.code.split('\n')
 
   const handleCopy = async () => {
@@ -21,6 +23,7 @@ const SnippetViewer = ({ snippet, onClose, onEdit }) => {
       console.error('Failed to copy:', err)
     }
   }
+
   const formattedTimestamp = new Date(snippet.timestamp).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
@@ -29,65 +32,48 @@ const SnippetViewer = ({ snippet, onClose, onEdit }) => {
   })
 
   return (
-    <div className="h-full flex flex-col bg-white dark:bg-slate-950 transition-colors duration-200">
-      {/* VS Code Style Header - Matches SnippetEditor */}
-      <div className="flex items-center justify-between px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-shrink-0 transition-colors duration-200">
-        {/* Left side */}
-        <div className="flex items-center gap-3 flex-1 min-w-0">
-          <button
-            onClick={onClose}
-            className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors flex-shrink-0"
-            title="Close (Esc)"
-          >
-            <X className="w-4 h-4" />
-          </button>
+    <div
+      className="h-full flex flex-col bg-white dark:bg-slate-950
+        transition-colors duration-200"
+    >
+      {/* VS Code Style Tab Header */}
+      <DocumentHeader
+        title={snippet.title}
+        onClose={onClose}
+        rightContent={
+          <>
+            {/* Meta info */}
+            <div className="flex items-center gap-2 text-xs text-slate-500 ">
+              <span>{codeLines.length} lines</span>
+              <span className="text-slate-400 dark:text-slate-600">•</span>
+              <span>{formattedTimestamp}</span>
+            </div>
 
-          {/* Title and language */}
-          <div className="flex items-center gap-2 min-w-0 flex-1">
-            <span className="text-sm font-medium text-slate-900 dark:text-white truncate">
-              {snippet.title}
-            </span>
-            <span className="text-xs text-slate-400 dark:text-slate-600 flex-shrink-0">•</span>
-            <small className="text-xs text-slate-500 dark:text-slate-400 font-mono flex-shrink-0">
-              {/* {toCapitalized(snippet.language)} */}
-              {snippet.language}
-            </small>
-          </div>
-        </div>
+            {/* Action buttons */}
+            <div className="flex items-center gap-1">
+              {onEdit && (
+                <button
+                  onClick={onEdit}
+                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
+                  title="Edit snippet"
+                >
+                  <Pencil size={12} />
+                </button>
+              )}
 
-        {/* Right side - Meta info and actions */}
-        <div className="flex items-center gap-4 flex-shrink-0">
-          {/* Meta info */}
-          <div className="flex items-center gap-2 text-xs text-slate-500">
-            <span>{codeLines.length} lines</span>
-            <span className="text-slate-400 dark:text-slate-600">•</span>
-            <span className="text-xs text-slate-500 dark:text-slate-500">{formattedTimestamp}</span>
-          </div>
-
-          {/* Action buttons */}
-          <div className="flex items-center gap-1">
-            {onEdit && (
               <button
-                onClick={onEdit}
-                className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
-                title="Edit snippet"
+                onClick={handleCopy}
+                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
+                title="Copy to clipboard"
               >
-                <Pencil className="w-4 h-4" />
+                <Copy size={12} />
               </button>
-            )}
+            </div>
+          </>
+        }
+      />
 
-            <button
-              onClick={handleCopy}
-              className="p-1.5 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
-              title="Copy to clipboard"
-            >
-              <Copy className="w-4 h-4" />
-            </button>
-          </div>
-        </div>
-      </div>
-
-      {/* Rest of your existing code view area remains the same */}
+      {/* Code view area */}
       <div className="flex-1 overflow-auto bg-white dark:bg-slate-950 transition-colors duration-200">
         {isCode ? (
           <div className="flex min-h-full">

@@ -1,6 +1,6 @@
 import React from 'react'
 import PropTypes from 'prop-types'
-import { Settings, Birdhouse, FolderKanban, Files, Search } from 'lucide-react'
+import { Settings, Birdhouse, FolderKanban, Files, Search, SquareM } from 'lucide-react'
 
 // Helper Component for the Icons
 const ActivityBarIcon = ({ icon, label, active, onClick }) => (
@@ -28,7 +28,6 @@ const ActivityBar = ({ activeView, setActiveView, toggleSidebar }) => {
       toggleSidebar()
     } else {
       setActiveView(viewName)
-      // We assume if they switch views, they want to see the sidebar
       // You might need to pass 'false' to toggleSidebar if your logic expects a boolean,
       // but based on your previous code, toggleSidebar was a simple toggle function.
     }
@@ -54,20 +53,8 @@ const ActivityBar = ({ activeView, setActiveView, toggleSidebar }) => {
         icon={<FolderKanban />}
       />
 
-      {/* Search (Optional: Only if you want a dedicated search view separate from explorer) */}
-      {/* If search is just a filter in explorer, you might not need this icon, but here it is based on your original code */}
-      {/* <ActivityBarIcon
-        label="Welcome"
-        active={activeView === 'welcome'}
-        onClick={() => handleItemClick('welcome')}
-        icon={<Search />}
-      /> */}
-
       {/* --- SPACER --- */}
       <div className="flex-1" />
-
-      {/* --- BOTTOM ICONS --- */}
-
       {/* Settings */}
       <ActivityBarIcon
         label="Settings"

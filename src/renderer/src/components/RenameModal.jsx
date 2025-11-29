@@ -17,9 +17,13 @@ const RenameModal = ({ isOpen, onClose, onRename, currentName, title = 'Rename' 
     onEscape: onClose
   })
 
+  const base = newName.trim()
+  const allowed = /^[a-zA-Z0-9._-]+$/.test(base)
+  const hasExt = /\.[a-z0-9]+$/i.test(base)
+  const isValid = allowed && hasExt
   const handleSubmit = (e) => {
     e.preventDefault()
-    if (newName.trim() && newName !== currentName) {
+    if (newName.trim() && newName !== currentName && isValid) {
       onRename(newName.trim())
     }
   }
@@ -59,6 +63,12 @@ const RenameModal = ({ isOpen, onClose, onRename, currentName, title = 'Rename' 
               className="w-full px-3 py-2 bg-slate-50 dark:bg-slate-900 border border-slate-300 dark:border-slate-600 rounded-md text-slate-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-transparent transition-all"
               placeholder="Enter new name..."
             />
+            {!isValid && (
+              <p className="mt-1 text-xs text-red-500">
+                Include an extension (e.g., .js, .py) and use only letters, numbers, dot,
+                underscore, or dash.
+              </p>
+            )}
           </div>
 
           <div className="flex justify-end gap-3">
@@ -71,7 +81,7 @@ const RenameModal = ({ isOpen, onClose, onRename, currentName, title = 'Rename' 
             </button>
             <button
               type="submit"
-              disabled={!newName.trim() || newName === currentName}
+              disabled={!newName.trim() || newName === currentName || !isValid}
               className="px-4 py-2 text-sm font-medium text-white bg-primary-600 hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-md transition-colors shadow-sm"
             >
               Rename

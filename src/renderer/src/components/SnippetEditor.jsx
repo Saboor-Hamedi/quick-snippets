@@ -1,10 +1,12 @@
 // Edit snippets
+
 import React, { useState, useEffect, useRef } from 'react'
 import PropTypes from 'prop-types'
-import { X } from 'lucide-react'
+import { X, Check, Pencil, Copy } from 'lucide-react'
 import toCapitalized from '../hook/stringUtils'
-import { useKeyboardShortcuts } from '../hook/useKeyboardShortcuts'
 import { useTextEditor } from '../hook/useTextEditor'
+import { useKeyboardShortcuts } from '../hook/useKeyboardShortcuts'
+import DocumentHeader from './layout/DocumentHeader'
 const SnippetEditor = ({ onSave, initialSnippet, onCancel }) => {
   const { code, setCode, textareaRef, handleKeyDown } = useTextEditor(initialSnippet?.code || '')
   // 2. We keep language state here because it's specific to the UI, not the text editing logic
@@ -17,18 +19,44 @@ const SnippetEditor = ({ onSave, initialSnippet, onCancel }) => {
     }
   }, [initialSnippet])
 
+  const isCode = (language || '') !== 'txt'
+  const codeLines = (code || '').split('\n')
+  const formattedTimestamp = new Date(initialSnippet?.timestamp || Date.now()).toLocaleDateString(
+    'en-US',
+    {
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit'
+    }
+  )
+  React.useEffect(() => {
+    const t = code || ''
+    const has = (r) => r.test(t)
+    let detected = 'txt'
+    if (has(/^\s*<\w|<!DOCTYPE|<html[\s>]/i)) detected = 'html'
+    else if (has(/\b(def|import\s+\w+|from\s+\w+|print\(|elif|except|with)\b/)) detected = 'py'
+    else if (has(/\b(function|const|let|var|=>|console\.log|class\s+\w+)\b/)) detected = 'js'
+    else if (has(/\{[\s\S]*\}|:\s*\w+;|@media|--[a-z-]+:/)) detected = 'css'
+    else if (has(/\{\s*"|\[\s*\{|\}\s*\]/)) detected = 'json'
+    else if (has(/^(SELECT|INSERT|UPDATE|DELETE|CREATE|ALTER)\b/i)) detected = 'sql'
+    else if (has(/#include\s+<|std::|int\s+main\s*\(/)) detected = 'cpp'
+    else if (has(/\bpublic\s+class\b|System\.out\.println|package\s+\w+/)) detected = 'java'
+    else if (has(/^#!.*(bash|sh)|\becho\b|\bcd\b|\bfi\b/)) detected = 'sh'
+    else if (has(/^(# |## |### |> |\* |\d+\. )/m)) detected = 'md'
+    if (detected !== language) setLanguage(detected)
+  }, [code])
+
   // update or create snippet
   const handleSave = () => {
     if (!code.trim()) return
 
-    // Auto-generate title based on the first line of code (without "Snippet:" prefix)
-    const codePreview = code.trim().substring(0, 30)
-    const title = `${codePreview}${code.length > 30 ? '...' : ''}`
+    const title = initialSnippet?.title || 'untitled'
 
     // Construct the object
     const newSnippet = {
       id: initialSnippet?.id || Date.now().toString(),
-      title: initialSnippet?.title || title,
+      title: title,
       code: code,
       language: language,
       timestamp: Date.now(),
@@ -48,7 +76,13 @@ const SnippetEditor = ({ onSave, initialSnippet, onCancel }) => {
     onEscape: onCancel,
     onSave: handleSave
   })
-
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(code || '')
+    } catch (err) {
+      console.error('Failed to copy:', err)
+    }
+  }
   const handleSubmit = (e) => {
     e.preventDefault()
     handleSave()
@@ -57,39 +91,43 @@ const SnippetEditor = ({ onSave, initialSnippet, onCancel }) => {
   return (
     <div className="h-full flex flex-col bg-white dark:bg-slate-900 transition-colors duration-200">
       {/* VS Code Style Header */}
-      {onCancel && (
-        <div className="flex items-center justify-between px-4 py-2 border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-shrink-0 transition-colors duration-200">
-          {/* Left side */}
-          <div className="flex items-center gap-3 flex-1 min-w-0">
-            <button
-              onClick={onCancel}
-              className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-500 hover:text-slate-900 dark:hover:text-white transition-colors flex-shrink-0"
-              title="Close (Esc)"
-            >
-              <X className="w-4 h-4" />
-            </button>
+     
 
-            {/* Title */}
-            <div className="flex items-center gap-2 min-w-0 flex-1">
-              <span className="text-sm font-medium text-slate-900 dark:text-white truncate">
-                {initialSnippet ? 'Editing Snippet' : 'New Snippet'}
-              </span>
-              <span className="text-xs text-slate-400 dark:text-slate-600 flex-shrink-0">•</span>
-              <small className="text-xs text-slate-500 dark:text-slate-400 font-mono flex-shrink-0">
-                {/* {toCapitalized(language)} */}
-                {toCapitalized ? toCapitalized(language) : language}
-              </small>
+      <DocumentHeader
+        title={initialSnippet?.title || 'Untitled'}
+        subtitle={language}
+        onClose={onCancel}
+        rightContent={
+          <>
+            {/* Meta info */}
+            <div className="flex items-center gap-2 text-xs text-slate-500 ">
+              <span className="text-slate-400 dark:text-slate-600">•</span>
+              <span>{formattedTimestamp}</span>
             </div>
-          </div>
 
-          {/* Right side - Keyboard shortcuts */}
-          <div className="flex items-center gap-2 text-xs text-slate-500 flex-shrink-0">
-            <span>Ctrl+S to save</span>
-            <span className="text-slate-400">•</span>
-            <span>Esc to close</span>
-          </div>
-        </div>
-      )}
+            {/* Action buttons */}
+            <div className="flex items-center gap-1">
+              {onSave && (
+                <button
+                  onClick={handleSave}
+                  className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
+                  title="Edit snippet"
+                >
+                  <Pencil size={12} />
+                </button>
+              )}
+
+              <button
+                onClick={handleCopy}
+                className="p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
+                title="Copy to clipboard"
+              >
+                <Copy size={12} />
+              </button>
+            </div>
+          </>
+        }
+      />
 
       <form onSubmit={handleSubmit} className="flex-1 flex flex-col">
         {/* EDITOR AREA */}
@@ -101,27 +139,27 @@ const SnippetEditor = ({ onSave, initialSnippet, onCancel }) => {
             onChange={(e) => setCode(e.target.value)}
             onKeyDown={handleKeyDown}
             className="
-                    w-full h-full 
-                    bg-slate-50 dark:bg-[#0f172a] 
-                    text-slate-800 dark:text-slate-300 
-                    p-4 
-                    font-mono text-sm 
-                    
+                    w-full h-full
+                    bg-slate-50 dark:bg-[#0f172a]
+                    text-slate-800 dark:text-slate-300
+                    p-4
+                    font-mono text-sm
+
                     /* REMOVE BORDERS & RINGS */
-                    resize-none 
-                    border-none 
-                    outline-none 
-                    focus:outline-none 
+                    resize-none
+                    border-none
+                    outline-none
+                    focus:outline-none
                     focus:ring-0  /* This is key: removes the blue Tailwind glow */
-                    
+
                     /* TYPOGRAPHY POLISH */
                     leading-relaxed /* More space between lines (1.625) */
                     tracking-normal
-                    
+
                     /* VISUAL FLINT */
                     caret-primary-600 dark:caret-primary-400 /* Colored blinking cursor */
                     selection:bg-primary-200 dark:selection:bg-primary-900/50 /* Highlight color */
-                    
+
                     transition-colors duration-200
                   "
             spellCheck="false"
@@ -129,30 +167,8 @@ const SnippetEditor = ({ onSave, initialSnippet, onCancel }) => {
           />
         </div>
 
-        {/* Footer - Language Selector */}
-        <div className="border-t border-slate-200 dark:border-slate-700 px-4 py-2 bg-white dark:bg-slate-800/50 flex items-center justify-between backdrop-blur-sm transition-colors duration-200">
-          <div className="flex items-center gap-2">
-            <span className="text-xs text-slate-500 dark:text-slate-400">Language:</span>
-            <select
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className="bg-slate-100 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded px-2 py-1 text-xs text-slate-900 dark:text-white focus:outline-none focus:ring-1 focus:ring-primary-500 transition-colors"
-            >
-              <option value="js">JavaScript</option>
-              <option value="py">Python</option>
-              <option value="sh">Bash / Shell</option>
-              <option value="html">HTML</option>
-              <option value="css">CSS</option>
-              <option value="json">JSON</option>
-              <option value="md">Markdown</option>
-              <option value="sql">SQL</option>
-              <option value="cpp">C++</option>
-              <option value="java">Java</option>
-              <option value="txt">Plain Text</option>
-            </select>
-          </div>
-
-          {/* Save button for mobile/accessibility */}
+        {/* Footer - Save button only */}
+        <div className="border-t border-slate-200 dark:border-slate-700 px-4 py-2 bg-white dark:bg-slate-800/50 flex items-center justify-end backdrop-blur-sm transition-colors duration-200">
           <button
             type="submit"
             className="px-3 py-1.5 text-xs bg-primary-600 hover:bg-primary-500 text-white rounded font-medium transition-colors"
