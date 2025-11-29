@@ -593,7 +593,7 @@ code ::selection,
 }
 
 .custom-caret {
-  position: fixed;
+  position: absolute;
   width: var(--caret-width);
   background: var(--color-text);
   pointer-events: none;

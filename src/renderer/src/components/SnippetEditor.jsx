@@ -286,8 +286,8 @@ const SnippetEditor = ({
     const rectCaret = caret.getBoundingClientRect()
     const offsetX = rectCaret.left - rectClone.left
     const offsetY = rectCaret.top - rectClone.top
-    const viewportX = rectTa.left + offsetX - ta.scrollLeft
-    const viewportY = rectTa.top + offsetY - ta.scrollTop
+    const viewportX = rectTa.left + offsetX
+    const viewportY = rectTa.top + offsetY
     const pos = { x: viewportX, y: viewportY }
     div.remove()
     return pos
@@ -324,8 +324,10 @@ const SnippetEditor = ({
     const styleType = (root.getPropertyValue('--caret-style') || 'bar').trim()
     const caretW = (root.getPropertyValue('--caret-width') || '3px').trim()
     const pos = computeCaretPosition()
-    el.style.left = `${Math.max(0, Math.round(pos.x || x))}px`
-    el.style.top = `${Math.max(0, Math.round(pos.y || y))}px`
+    const containerRect = container.getBoundingClientRect()
+    const taRect = ta.getBoundingClientRect()
+    el.style.left = `${Math.max(0, Math.round((pos.x || x) - containerRect.left))}px`
+    el.style.top = `${Math.max(0, Math.round((pos.y || y) - containerRect.top))}px`
     if (styleType === 'block' || (styleType !== 'bar' && styleType !== 'underline')) {
       el.style.width = `${charWidth || 8}px`
       el.style.height = `${lh}px`
@@ -345,7 +347,7 @@ const SnippetEditor = ({
     ta.style.backgroundImage = 'linear-gradient(var(--current-line-bg), var(--current-line-bg))'
     ta.style.backgroundRepeat = 'no-repeat'
     ta.style.backgroundSize = `100% ${lh}px`
-    ta.style.backgroundPosition = `0 ${Math.max(0, y)}px`
+    ta.style.backgroundPosition = `0 ${Math.max(0, Math.round((pos.y || y) - taRect.top))}px`
   }
 
   const updateMention = () => {
@@ -687,7 +689,9 @@ const SnippetEditor = ({
                           fontFamily: 'var(--editor-font-family)',
                           fontSize: 'var(--editor-font-size)',
                           lineHeight: 'var(--editor-line-height)',
-                          paddingBottom: 'calc(var(--editor-font-size) * var(--editor-line-height))'
+                          paddingBottom:
+                            'calc(var(--editor-font-size) * var(--editor-line-height))',
+                          caretColor: 'transparent'
                         }}
                         spellCheck="false"
                         autoFocus
@@ -732,7 +736,8 @@ const SnippetEditor = ({
                     fontFamily: 'var(--editor-font-family)',
                     fontSize: 'var(--editor-font-size)',
                     lineHeight: 'var(--editor-line-height)',
-                    paddingBottom: 'calc(var(--editor-font-size) * var(--editor-line-height))'
+                    paddingBottom: 'calc(var(--editor-font-size) * var(--editor-line-height))',
+                    caretColor: 'transparent'
                   }}
                   spellCheck="false"
                   autoFocus
