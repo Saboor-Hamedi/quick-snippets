@@ -71,20 +71,18 @@ const MarkdownPreview = ({ content }) => {
                 {...props}
               />
             ),
+            p: ({ children, ...props }) => <p {...props}>{renderWithTags(children)}</p>,
+            li: ({ children, ...props }) => <li {...props}>{renderWithTags(children)}</li>,
             code({ node, inline, className, children, ...props }) {
               const match = /language-(\w+)/.exec(className || '')
               const lang = normalizeLang(match?.[1])
               if (!inline && lang) {
                 return (
-                  <SyntaxHighlighter
-                    PreTag="div"
+                  <CodeBlock
                     language={lang}
+                    code={String(children).replace(/\n$/, '')}
                     style={style}
-                    customStyle={{ margin: 0, borderRadius: 6 }}
-                    {...props}
-                  >
-                    {String(children).replace(/\n$/, '')}
-                  </SyntaxHighlighter>
+                  />
                 )
               }
               return (
@@ -101,6 +99,57 @@ const MarkdownPreview = ({ content }) => {
           {content || ''}
         </ReactMarkdown>
       </div>
+    </div>
+  )
+}
+
+const renderWithTags = (children) => {
+  const flatten = (nodes) =>
+    nodes
+      .map((n) => (typeof n === 'string' ? n : (n && n.props && n.props.children) || ''))
+      .join(' ')
+  const text = Array.isArray(children) ? flatten(children) : String(children || '')
+  const parts = text.split(/(#[a-zA-Z0-9_-]+)/g)
+  return parts.map((part, i) =>
+    part.startsWith('#') ? (
+      <span
+        key={i}
+        className="inline-block px-2 py-0.5 rounded-full bg-sky-100 text-sky-700 dark:bg-[#1e3a8a] dark:text-sky-200 text-xs mr-1 align-middle"
+      >
+        {part}
+      </span>
+    ) : (
+      <span key={i}>{part}</span>
+    )
+  )
+}
+
+const CodeBlock = ({ language, code, style }) => {
+  const [copied, setCopied] = React.useState(false)
+  const onCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(code)
+      setCopied(true)
+      setTimeout(() => setCopied(false), 2000)
+    } catch {}
+  }
+  return (
+    <div className="relative group">
+      <button
+        onClick={onCopy}
+        className="absolute top-2 right-2 px-2 py-1 text-xs rounded bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 opacity-0 group-hover:opacity-100 transition-opacity"
+        title="Copy code"
+      >
+        {copied ? '✓ Copied' : 'Copy'}
+      </button>
+      <SyntaxHighlighter
+        PreTag="div"
+        language={language}
+        style={style}
+        customStyle={{ margin: 0, borderRadius: 6 }}
+      >
+        {code}
+      </SyntaxHighlighter>
     </div>
   )
 }

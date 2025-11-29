@@ -2,14 +2,24 @@
 
 import React, { useState, useEffect, useRef, useMemo } from 'react'
 import PropTypes from 'prop-types'
-import { useDebounce } from 'use-debounce'
+import { useDebounce, useDebouncedCallback } from 'use-debounce'
 import { useTextEditor } from '../hook/useTextEditor'
 import { useKeyboardShortcuts } from '../hook/useKeyboardShortcuts'
 import useHighlight from '../hook/useHighlight'
 import MarkdownPreview from './MarkdownPreview.jsx'
 import ViewToolbar from './ViewToolbar'
+import WelcomePage from './WelcomePage'
+import ContextMenu from './ContextMenu'
 
-const SnippetEditor = ({ onSave, initialSnippet, onCancel, onNew }) => {
+const SnippetEditor = ({
+  onSave,
+  initialSnippet,
+  onCancel,
+  onNew,
+  onDelete,
+  onNewProject,
+  isCreateMode
+}) => {
   const { code, setCode, textareaRef, handleKeyDown } = useTextEditor(initialSnippet?.code || '')
   const [language, setLanguage] = React.useState(initialSnippet?.language || 'txt')
 
@@ -17,6 +27,40 @@ const SnippetEditor = ({ onSave, initialSnippet, onCancel, onNew }) => {
   const [debouncedCode] = useDebounce(code, 1000)
   const [debouncedLanguage] = useDebounce(language, 1000)
   const [debouncedPreviewCode] = useDebounce(code, 200)
+  const isDeletingRef = useRef(false)
+
+  const debouncedSave = useDebouncedCallback(() => {
+    const id = initialSnippet?.id
+    if (!id) return
+    if (isDeletingRef.current) return
+    if (window.__deletedIds && window.__deletedIds.has(id)) return
+    const updatedSnippet = {
+      id: id,
+      title: initialSnippet.title,
+      code: code,
+      language: language,
+      timestamp: Date.now(),
+      type: initialSnippet.type || 'snippet',
+      tags: extractTags(code)
+    }
+    onSave(updatedSnippet)
+  }, 1000)
+
+  useEffect(() => {
+    // Register canceler globally keyed by snippet id
+    const id = initialSnippet?.id
+    if (id) {
+      if (!window.__autosaveCancel) window.__autosaveCancel = new Map()
+      window.__autosaveCancel.set(id, debouncedSave.cancel)
+    }
+    return () => {
+      const id2 = initialSnippet?.id
+      try {
+        debouncedSave.cancel()
+        if (id2 && window.__autosaveCancel) window.__autosaveCancel.delete(id2)
+      } catch {}
+    }
+  }, [initialSnippet?.id])
 
   // Track if this is the initial mount to prevent autosave on first render
   const isInitialMount = useRef(true)
@@ -89,6 +133,7 @@ const SnippetEditor = ({ onSave, initialSnippet, onCancel, onNew }) => {
   const dividerWidth = 6
   const [nameOpen, setNameOpen] = useState(false)
   const [nameInput, setNameInput] = useState('')
+  const [menu, setMenu] = useState(null)
 
   useEffect(() => {
     if (!canPreview && layoutMode !== 'editor') {
@@ -139,32 +184,11 @@ const SnippetEditor = ({ onSave, initialSnippet, onCancel, onNew }) => {
     window.addEventListener('mouseup', onUp)
   }
 
-  // Autosave effect - triggers when user stops typing
+  // Trigger debounced save on content or language change
   useEffect(() => {
-    // Skip autosave on initial mount
-    if (isInitialMount.current) {
-      isInitialMount.current = false
-      return
-    }
-
-    // Only autosave if snippet has a title (project is created/named)
-    if (!initialSnippet?.title) {
-      return
-    }
-
-    // Construct the updated snippet
-    const updatedSnippet = {
-      id: initialSnippet.id,
-      title: initialSnippet.title,
-      code: debouncedCode,
-      language: debouncedLanguage,
-      timestamp: Date.now(),
-      type: initialSnippet.type || 'snippet'
-    }
-
-    // Trigger autosave
-    onSave(updatedSnippet)
-  }, [debouncedCode, debouncedLanguage])
+    if (!initialSnippet?.title) return
+    debouncedSave()
+  }, [code, language])
 
   // Handle keyboard shortcuts (only Escape now)
   useKeyboardShortcuts({
@@ -208,87 +232,49 @@ const SnippetEditor = ({ onSave, initialSnippet, onCancel, onNew }) => {
       code: code,
       language: lang,
       timestamp: Date.now(),
-      type: initialSnippet?.type || 'snippet'
+      type: initialSnippet?.type || 'snippet',
+      tags: extractTags(code)
     }
     onSave(payload)
   }
 
   return (
-    <div className="h-full flex flex-col items-stretch bg-slate-50 dark:bg-[#0d1117] transition-colors duration-200 relative">
-      <ViewToolbar
-        onNew={onNew}
-        layoutMode={layoutMode}
-        setLayoutMode={setLayoutMode}
-        previewPosition={previewPosition}
-        setPreviewPosition={setPreviewPosition}
-        resetSplit={() => setSplitRatio(0.5)}
-      />
-      {layoutMode === 'split' && (
-        <div
-          ref={containerRef}
-          style={{
-            display: 'grid',
-            gridTemplateColumns:
-              previewPosition === 'left'
-                ? `${Math.round(splitRatio * 100)}% ${dividerWidth}px ${Math.round((1 - splitRatio) * 100)}%`
-                : `${Math.round((1 - splitRatio) * 100)}% ${dividerWidth}px ${Math.round(splitRatio * 100)}%`,
-            minHeight: 0,
-            userSelect: resizingRef.current ? 'none' : 'auto',
-            overflow: 'hidden',
-            alignItems: 'stretch'
-          }}
-          className="flex-1 min-h-0"
-        >
-          {previewPosition === 'left' ? (
-            <div
-              ref={previewRef}
-              className="h-full min-h-0 overflow-auto bg-transparent preview-container"
-              style={{ maxHeight: '100%' }}
-            >
-              {showMarkdown ? (
-                <MarkdownPreview content={code} />
-              ) : (
-                <div className="p-4">
-                  <pre className="text-xs font-mono leading-5 m-0">
-                    <code
-                      className="hljs block text-slate-700 dark:text-slate-300"
-                      dangerouslySetInnerHTML={{ __html: highlightedHtml }}
-                    />
-                  </pre>
-                </div>
-              )}
-            </div>
-          ) : (
-            <div
-              className="h-full min-h-0 overflow-hidden editor-container"
-              style={{ maxHeight: '100%' }}
-            >
-              <textarea
-                key={`left-${layoutMode}-${previewPosition}`}
-                placeholder="Type your snippets here..."
-                value={code}
-                ref={textareaRef}
-                onChange={(e) => setCode(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="w-full h-full overflow-y-auto text-slate-800 dark:text-white p-4 font-mono text-sm resize-none border-none outline-none focus:outline-none focus:ring-0 leading-relaxed tracking-normal transition-colors duration-200 editor-textarea"
-                style={{ backgroundColor: 'var(--color-background)' }}
-                spellCheck="false"
-                autoFocus
-              />
-            </div>
-          )}
-
-          {canPreview ? (
-            <div
-              onMouseDown={startResize}
-              onDoubleClick={() => setSplitRatio(0.5)}
-              style={{ width: `${dividerWidth}px` }}
-              className="cursor-col-resize bg-slate-200 dark:bg-slate-700"
-            />
-          ) : null}
-
-          {canPreview ? (
-            previewPosition === 'right' ? (
+    // Guard: if not in create mode and there's no valid snippet, show Welcome
+    !isCreateMode && (!initialSnippet || !initialSnippet.id) ? (
+      <WelcomePage onNewSnippet={onNew} onNewProject={onNewProject} />
+    ) : (
+      <div
+        className="h-full flex flex-col items-stretch bg-slate-50 dark:bg-[#0d1117] transition-colors duration-200 relative"
+        onContextMenu={(e) => {
+          e.preventDefault()
+          setMenu({ x: e.clientX, y: e.clientY })
+        }}
+      >
+        <ViewToolbar
+          onNew={onNew}
+          layoutMode={layoutMode}
+          setLayoutMode={setLayoutMode}
+          previewPosition={previewPosition}
+          setPreviewPosition={setPreviewPosition}
+          resetSplit={() => setSplitRatio(0.5)}
+        />
+        {layoutMode === 'split' && (
+          <div
+            ref={containerRef}
+            style={{
+              display: 'grid',
+              gridTemplateColumns:
+                previewPosition === 'left'
+                  ? `${Math.round(splitRatio * 100)}% ${dividerWidth}px ${Math.round((1 - splitRatio) * 100)}%`
+                  : `${Math.round((1 - splitRatio) * 100)}% ${dividerWidth}px ${Math.round(splitRatio * 100)}%`,
+              minHeight: 0,
+              userSelect: resizingRef.current ? 'none' : 'auto',
+              overflow: 'hidden',
+              alignItems: 'stretch'
+            }}
+            className="flex-1 min-h-0"
+          >
+            {previewPosition === 'left' ? (
               <div
                 ref={previewRef}
                 className="h-full min-h-0 overflow-auto bg-transparent preview-container"
@@ -313,7 +299,7 @@ const SnippetEditor = ({ onSave, initialSnippet, onCancel, onNew }) => {
                 style={{ maxHeight: '100%' }}
               >
                 <textarea
-                  key={`right-${layoutMode}-${previewPosition}`}
+                  key={`left-${layoutMode}-${previewPosition}`}
                   placeholder="Type your snippets here..."
                   value={code}
                   ref={textareaRef}
@@ -325,129 +311,230 @@ const SnippetEditor = ({ onSave, initialSnippet, onCancel, onNew }) => {
                   autoFocus
                 />
               </div>
-            )
-          ) : null}
-        </div>
-      )}
-
-      {layoutMode === 'editor' && (
-        <div className="flex-1 min-h-0 overflow-hidden editor-container">
-          <textarea
-            placeholder="Type your snippets here..."
-            value={code}
-            ref={textareaRef}
-            onChange={(e) => setCode(e.target.value)}
-            onKeyDown={handleKeyDown}
-            className="w-full h-full overflow-y-auto text-slate-800 dark:text-white p-4 font-mono text-sm resize-none border-none outline-none focus:outline-none focus:ring-0 leading-relaxed tracking-normal transition-colors duration-200 editor-textarea"
-            style={{ backgroundColor: 'var(--color-background)' }}
-            spellCheck="false"
-            autoFocus
-          />
-        </div>
-      )}
-
-      {layoutMode === 'preview' && canPreview && (
-        <div className="flex-1 min-h-0 overflow-hidden preview-container">
-          <div
-            ref={previewRef}
-            className="h-full min-h-0 overflow-auto bg-transparent"
-            style={{ maxHeight: '100%' }}
-          >
-            {showMarkdown ? (
-              <MarkdownPreview content={code} />
-            ) : (
-              <div className="p-4">
-                <pre className="text-xs font-mono leading-5 m-0">
-                  <code
-                    className="hljs block text-slate-700 dark:text-slate-300"
-                    dangerouslySetInnerHTML={{ __html: highlightedHtml }}
-                  />
-                </pre>
-              </div>
             )}
+
+            {canPreview ? (
+              <div
+                onMouseDown={startResize}
+                onDoubleClick={() => setSplitRatio(0.5)}
+                style={{ width: `${dividerWidth}px` }}
+                className="cursor-col-resize bg-slate-200 dark:bg-slate-700"
+              />
+            ) : null}
+
+            {canPreview ? (
+              previewPosition === 'right' ? (
+                <div
+                  ref={previewRef}
+                  className="h-full min-h-0 overflow-auto bg-transparent preview-container"
+                  style={{ maxHeight: '100%' }}
+                >
+                  {showMarkdown ? (
+                    <MarkdownPreview content={code} />
+                  ) : (
+                    <div className="p-4">
+                      <pre className="text-xs font-mono leading-5 m-0">
+                        <code
+                          className="hljs block text-slate-700 dark:text-slate-300"
+                          dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+                        />
+                      </pre>
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <div
+                  className="h-full min-h-0 overflow-hidden editor-container"
+                  style={{ maxHeight: '100%' }}
+                >
+                  <textarea
+                    key={`right-${layoutMode}-${previewPosition}`}
+                    placeholder="Type your snippets here..."
+                    value={code}
+                    ref={textareaRef}
+                    onChange={(e) => setCode(e.target.value)}
+                    onKeyDown={handleKeyDown}
+                    className="w-full h-full overflow-y-auto text-slate-800 dark:text-white p-4 font-mono text-sm resize-none border-none outline-none focus:outline-none focus:ring-0 leading-relaxed tracking-normal transition-colors duration-200 editor-textarea"
+                    style={{ backgroundColor: 'var(--color-background)' }}
+                    spellCheck="false"
+                    autoFocus
+                  />
+                </div>
+              )
+            ) : null}
           </div>
-        </div>
-      )}
+        )}
 
-      {!initialSnippet?.title && initialSnippet?.type !== 'project' && (
-        <div className="absolute bottom-4 right-4">
-          <button
-            onClick={handleSave}
-            className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded shadow-lg text-sm font-medium transition-colors"
-          >
-            Save
-          </button>
-        </div>
-      )}
-
-      {nameOpen && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-          <div className="bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-[#30363d] rounded p-4 w-80">
-            <div className="text-sm mb-2 text-slate-700 dark:text-slate-200">
-              Enter a name (optionally with extension)
-            </div>
-            <input
-              value={nameInput}
-              onChange={(e) => setNameInput(e.target.value)}
-              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-[#30363d] rounded text-slate-800 dark:text-slate-200"
-              placeholder="e.g. hello.js or notes"
+        {layoutMode === 'editor' && (
+          <div className="flex-1 min-h-0 overflow-hidden editor-container">
+            <textarea
+              placeholder="Type your snippets here..."
+              value={code}
+              ref={textareaRef}
+              onChange={(e) => setCode(e.target.value)}
+              onKeyDown={handleKeyDown}
+              className="w-full h-full overflow-y-auto text-slate-800 dark:text-white p-4 font-mono text-sm resize-none border-none outline-none focus:outline-none focus:ring-0 leading-relaxed tracking-normal transition-colors duration-200 editor-textarea"
+              style={{ backgroundColor: 'var(--color-background)' }}
+              spellCheck="false"
               autoFocus
             />
-            <div className="flex justify-end gap-2 mt-3">
-              <button
-                onClick={() => setNameOpen(false)}
-                className="px-3 py-1.5 text-sm bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => {
-                  const t = nameInput.trim()
-                  if (!t) return
-                  const hasExt = /\.[^\.\s]+$/.test(t)
-                  const extMap = {
-                    js: 'js',
-                    jsx: 'js',
-                    ts: 'js',
-                    py: 'py',
-                    html: 'html',
-                    css: 'css',
-                    json: 'json',
-                    sql: 'sql',
-                    cpp: 'cpp',
-                    h: 'cpp',
-                    java: 'java',
-                    sh: 'sh',
-                    md: 'md',
-                    txt: 'txt'
-                  }
-                  let lang = language
-                  if (hasExt) {
-                    const ext = t.split('.').pop().toLowerCase()
-                    lang = extMap[ext] || lang
-                  } else {
-                    lang = 'txt'
-                  }
-                  const payload = {
-                    id: initialSnippet?.id || Date.now().toString(),
-                    title: t,
-                    code: code,
-                    language: lang,
-                    timestamp: Date.now(),
-                    type: initialSnippet?.type || 'snippet'
-                  }
-                  setNameOpen(false)
-                  onSave(payload)
-                }}
-                className="px-3 py-1.5 text-sm bg-primary-600 hover:bg-primary-700 text-white rounded"
-              >
-                Save
-              </button>
+          </div>
+        )}
+
+        {layoutMode === 'preview' && canPreview && (
+          <div className="flex-1 min-h-0 overflow-hidden preview-container">
+            <div
+              ref={previewRef}
+              className="h-full min-h-0 overflow-auto bg-transparent"
+              style={{ maxHeight: '100%' }}
+            >
+              {showMarkdown ? (
+                <MarkdownPreview content={code} />
+              ) : (
+                <div className="p-4">
+                  <pre className="text-xs font-mono leading-5 m-0">
+                    <code
+                      className="hljs block text-slate-700 dark:text-slate-300"
+                      dangerouslySetInnerHTML={{ __html: highlightedHtml }}
+                    />
+                  </pre>
+                </div>
+              )}
             </div>
           </div>
-        </div>
-      )}
-    </div>
+        )}
+
+        {!initialSnippet?.title && initialSnippet?.type !== 'project' && (
+          <div className="absolute bottom-4 right-4">
+            <button
+              onClick={handleSave}
+              className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded shadow-lg text-sm font-medium transition-colors"
+            >
+              Save
+            </button>
+          </div>
+        )}
+
+        {menu && (
+          <ContextMenu
+            x={menu.x}
+            y={menu.y}
+            onClose={() => setMenu(null)}
+            onCut={() => {
+              setMenu(null)
+              document.execCommand('cut')
+            }}
+            onCopy={() => {
+              setMenu(null)
+              const ta = textareaRef.current
+              if (!ta) return
+              const selText = ta.value.substring(ta.selectionStart, ta.selectionEnd)
+              if (selText) navigator.clipboard.writeText(selText)
+            }}
+            onPaste={() => {
+              setMenu(null)
+              const ta = textareaRef.current
+              if (!ta) return
+              ta.focus()
+              navigator.clipboard.readText().then((txt) => {
+                const start = ta.selectionStart
+                const end = ta.selectionEnd
+                const newVal = (code || '').slice(0, start) + txt + (code || '').slice(end)
+                setCode(newVal)
+                const caret = start + txt.length
+                requestAnimationFrame(() => {
+                  ta.selectionStart = caret
+                  ta.selectionEnd = caret
+                })
+              })
+            }}
+            onSelectAll={() => {
+              setMenu(null)
+              textareaRef.current?.focus()
+              const ta = textareaRef.current
+              if (!ta) return
+              ta.selectionStart = 0
+              ta.selectionEnd = (code || '').length
+            }}
+            onDelete={() => {
+              setMenu(null)
+              if (initialSnippet?.id && window.confirm('Delete this snippet?')) {
+                isDeletingRef.current = true
+                if (typeof onDelete === 'function') onDelete(initialSnippet.id)
+              }
+            }}
+          />
+        )}
+
+        {nameOpen && (
+          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+            <div className="bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-[#30363d] rounded p-4 w-80">
+              <div className="text-sm mb-2 text-slate-700 dark:text-slate-200">
+                Enter a name (optionally with extension)
+              </div>
+              <input
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-[#30363d] rounded text-slate-800 dark:text-slate-200"
+                placeholder="e.g. hello.js or notes"
+                autoFocus
+              />
+              <div className="flex justify-end gap-2 mt-3">
+                <button
+                  onClick={() => setNameOpen(false)}
+                  className="px-3 py-1.5 text-sm bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() => {
+                    const t = nameInput.trim()
+                    if (!t) return
+                    const hasExt = /\.[^\.\s]+$/.test(t)
+                    const extMap = {
+                      js: 'js',
+                      jsx: 'js',
+                      ts: 'js',
+                      py: 'py',
+                      html: 'html',
+                      css: 'css',
+                      json: 'json',
+                      sql: 'sql',
+                      cpp: 'cpp',
+                      h: 'cpp',
+                      java: 'java',
+                      sh: 'sh',
+                      md: 'md',
+                      txt: 'txt'
+                    }
+                    let lang = language
+                    if (hasExt) {
+                      const ext = t.split('.').pop().toLowerCase()
+                      lang = extMap[ext] || lang
+                    } else {
+                      lang = 'txt'
+                    }
+                    const payload = {
+                      id: initialSnippet?.id || Date.now().toString(),
+                      title: t,
+                      code: code,
+                      language: lang,
+                      timestamp: Date.now(),
+                      type: initialSnippet?.type || 'snippet'
+                    }
+                    setNameOpen(false)
+                    onSave(payload)
+                  }}
+                  className="px-3 py-1.5 text-sm bg-primary-600 hover:bg-primary-700 text-white rounded"
+                >
+                  Save
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+    )
   )
 }
 
@@ -460,7 +547,20 @@ SnippetEditor.propTypes = {
     language: PropTypes.string,
     timestamp: PropTypes.number
   }),
-  onCancel: PropTypes.func
+  onCancel: PropTypes.func,
+  onDelete: PropTypes.func,
+  onNewProject: PropTypes.func,
+  isCreateMode: PropTypes.bool
 }
 
 export default SnippetEditor
+const extractTags = (text) => {
+  const t = String(text || '')
+  const tags = new Set()
+  const re = /(^|\s)#([a-zA-Z0-9_-]+)/g
+  let m
+  while ((m = re.exec(t))) {
+    tags.add(m[2].toLowerCase())
+  }
+  return Array.from(tags).join(',')
+}

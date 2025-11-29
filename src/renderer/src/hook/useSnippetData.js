@@ -63,7 +63,12 @@ export const useSnippetData = () => {
 
       if (isSnippet && window.api?.deleteSnippet) {
         await window.api.deleteSnippet(id)
-        setSnippets(snippets.filter((s) => s.id !== id))
+        const next = snippets.filter((s) => s.id !== id)
+        setSnippets(next)
+        // Select next available snippet to keep editor open
+        if (selectedSnippet?.id === id) {
+          setSelectedSnippet(next.length ? next[0] : null)
+        }
         showToast('✓ Snippet deleted')
       } else if (isProject && window.api?.deleteProject) {
         await window.api.deleteProject(id)
@@ -71,8 +76,8 @@ export const useSnippetData = () => {
         showToast('✓ Project deleted')
       }
 
-      // Clear selection if deleted item was selected
-      if (selectedSnippet?.id === id) {
+      // handled above for snippets; for projects, clear selection if deleted
+      if (isProject && selectedSnippet?.id === id) {
         setSelectedSnippet(null)
       }
     } catch (error) {

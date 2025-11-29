@@ -41,17 +41,29 @@ const Workbench = ({
 
   // Priority 2: Editor mode (creating new snippet)
   if (activeView === 'editor') {
-    return <SnippetEditor onSave={onSave} onCancel={onCancelEditor} onNew={onNewSnippet} />
+    return (
+      <SnippetEditor
+        key="create-mode-editor"
+        onSave={onSave}
+        onCancel={onCancelEditor}
+        onNew={onNewSnippet}
+        onNewProject={onNewProject}
+        isCreateMode
+      />
+    )
   }
 
   // Priority 3: Editing a snippet
   if (editingSnippet) {
     return (
       <SnippetEditor
+        key={editingSnippet.id}
         initialSnippet={editingSnippet}
         onSave={handleSave}
         onNew={activeView === 'projects' ? onNewProject : onNewSnippet}
+        onNewProject={onNewProject}
         onCancel={handleCancelEdit}
+        onDelete={onDeleteRequest}
       />
     )
   }
@@ -60,10 +72,13 @@ const Workbench = ({
   if (selectedSnippet) {
     return (
       <SnippetEditor
+        key={selectedSnippet.id}
         initialSnippet={selectedSnippet}
         onSave={handleSave}
         onNew={activeView === 'projects' ? onNewProject : onNewSnippet}
+        onNewProject={onNewProject}
         onCancel={onCloseSnippet}
+        onDelete={onDeleteRequest}
       />
     )
   }

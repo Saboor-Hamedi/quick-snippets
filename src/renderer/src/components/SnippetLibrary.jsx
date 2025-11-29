@@ -16,6 +16,7 @@ const SnippetLibrary = () => {
     projects,
     selectedSnippet,
     setSelectedSnippet,
+    setSnippets,
     saveSnippet,
     saveProject,
     deleteItem,
@@ -29,7 +30,6 @@ const SnippetLibrary = () => {
   const [searchTerm, setSearchTerm] = useState('')
 
   // Modals
-  const [deleteModal, setDeleteModal] = useState({ isOpen: false, id: null, title: '' })
   const [createProjectModalOpen, setCreateProjectModalOpen] = useState(false)
   const [renameModal, setRenameModal] = useState({ isOpen: false, item: null })
   const [renameInput, setRenameInput] = useState('')
@@ -113,7 +113,6 @@ const SnippetLibrary = () => {
 
       // Escape closes modals and editor
       if (e.key === 'Escape') {
-        if (deleteModal.isOpen) setDeleteModal({ ...deleteModal, isOpen: false })
         if (createProjectModalOpen) setCreateProjectModalOpen(false)
         if (renameModal.isOpen) setRenameModal({ ...renameModal, isOpen: false })
         if (isCreatingSnippet) setIsCreatingSnippet(false)
@@ -149,13 +148,7 @@ const SnippetLibrary = () => {
     }
     document.addEventListener('keydown', handleKeyPress)
     return () => document.removeEventListener('keydown', handleKeyPress)
-  }, [
-    deleteModal.isOpen,
-    createProjectModalOpen,
-    renameModal.isOpen,
-    isCreatingSnippet,
-    isCommandPaletteOpen
-  ])
+  }, [createProjectModalOpen, renameModal.isOpen, isCreatingSnippet, isCommandPaletteOpen])
 
   // 6. Rename Logic -- This is where the rename modal is triggered and the rename is handled
   const handleRename = async (newName) => {
@@ -217,6 +210,37 @@ const SnippetLibrary = () => {
     }
   }
 
+  const handleDeleteSnippet = async (id) => {
+    try {
+      // Cancel any pending autosave for this snippet
+      if (window.__autosaveCancel && window.__autosaveCancel.get(id)) {
+        try {
+          window.__autosaveCancel.get(id)()
+        } catch {}
+      }
+
+      // Check if active BEFORE deleting (because deleteItem might change selectedSnippet)
+      const wasActive =
+        (activeView === 'snippets' || activeView === 'projects') &&
+        (selectedSnippet?.id === id || activeSnippet?.id === id || activeProject?.id === id)
+
+      // Use the hook's deleteItem which handles API calls and state updates for both snippets and projects
+      await deleteItem(id)
+
+      // Ensure creating editor mode is turned off
+      setIsCreatingSnippet(false)
+
+      if (wasActive) {
+        setActiveSnippet(null)
+        setActiveProject(null)
+        setSelectedSnippet(null)
+        setActiveView('welcome')
+      }
+    } catch (error) {
+      console.error('Failed to delete item:', error)
+    }
+  }
+
   return (
     <div className="flex h-screen bg-slate-50 dark:bg-slate-900 text-slate-900 dark:text-white overflow-hidden transition-colors duration-200">
       {toast && <div className="toast">{toast}</div>}
@@ -248,10 +272,15 @@ const SnippetLibrary = () => {
             onSelect={async (item) => {
               if (selectedSnippet && selectedSnippet.title) {
                 const prev = selectedSnippet
-                if (prev.type === 'project') {
-                  await saveProject(prev, { skipSelectedUpdate: true })
-                } else {
-                  await saveSnippet(prev, { skipSelectedUpdate: true })
+                const isDeleted = !!(window.__deletedIds && window.__deletedIds.has(prev.id))
+                const stillExists =
+                  snippets.some((s) => s.id === prev.id) || projects.some((p) => p.id === prev.id)
+                if (!isDeleted && stillExists) {
+                  if (prev.type === 'project') {
+                    await saveProject(prev, { skipSelectedUpdate: true })
+                  } else {
+                    await saveSnippet(prev, { skipSelectedUpdate: true })
+                  }
                 }
               }
               setIsCreatingSnippet(false)
@@ -269,13 +298,12 @@ const SnippetLibrary = () => {
               }
             }}
             // Wiring up actions
-            onDeleteRequest={(id) => {
-              const item = filteredItems.find((i) => i.id === id)
+            onDeleteRequest={async (id) => {
+              const item = snippets.find((i) => i.id === id)
               const title = item?.title || 'Item'
               const ok = window.confirm(`Delete "${title}"?`)
-              if (ok) {
-                deleteItem(id)
-              }
+              if (!ok) return
+              await handleDeleteSnippet(id)
             }}
             onCreateProject={() => setCreateProjectModalOpen(true)}
             onCreateSnippet={() => setIsCreatingSnippet(true)}
@@ -315,10 +343,7 @@ const SnippetLibrary = () => {
               setIsCreatingSnippet(false)
             }
           }}
-          onDeleteRequest={(id) => {
-            const item = [...snippets, ...projects].find((i) => i.id === id)
-            setDeleteModal({ isOpen: true, id, title: item?.title || 'Item' })
-          }}
+          onDeleteRequest={handleDeleteSnippet}
           onNewSnippet={() => setIsCreatingSnippet(true)}
           onNewProject={() => setCreateProjectModalOpen(true)}
           onChange={(code) => {

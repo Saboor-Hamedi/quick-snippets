@@ -24,7 +24,8 @@ function initDB() {
       code TEXT,
       language TEXT,
       timestamp INTEGER,
-      type TEXT
+      type TEXT,
+      tags TEXT
     );
 
     CREATE TABLE IF NOT EXISTS projects (
@@ -47,6 +48,15 @@ function initDB() {
       colors TEXT
     );
   `)
+
+  // Ensure 'tags' column exists for snippets (for inline hashtag storage)
+  try {
+    const cols = db.prepare('PRAGMA table_info(snippets)').all()
+    const hasTags = cols.some((c) => c.name === 'tags')
+    if (!hasTags) {
+      db.exec('ALTER TABLE snippets ADD COLUMN tags TEXT')
+    }
+  } catch {}
 
   return db
 }
@@ -188,9 +198,9 @@ app.whenReady().then(() => {
   // insert or update snippet
   ipcMain.handle('db:saveSnippet', (event, snippet) => {
     const stmt = db.prepare(
-      'INSERT OR REPLACE INTO snippets (id, title, code, language, timestamp, type) VALUES (@id, @title, @code, @language, @timestamp, @type)'
+      'INSERT OR REPLACE INTO snippets (id, title, code, language, timestamp, type, tags) VALUES (@id, @title, @code, @language, @timestamp, @type, @tags)'
     )
-    stmt.run(snippet)
+    stmt.run({ ...snippet, tags: snippet.tags || '' })
     return true
   })
 

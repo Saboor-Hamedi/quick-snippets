@@ -85,7 +85,8 @@ const CommandPalette = ({ isOpen, onClose, snippets = [], projects = [], onSelec
       onClick={onClose}
     >
       <div
-        className="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-200 dark:border-slate-700 overflow-hidden flex flex-col transform transition-all"
+        className="w-full max-w-2xl rounded-xl shadow-2xl border overflow-hidden flex flex-col transform transition-all"
+        style={{ backgroundColor: 'var(--color-background-soft)', borderColor: 'var(--border-color)', color: 'var(--color-text)' }}
         onClick={(e) => e.stopPropagation()}
       >
         {/* Search Input */}
@@ -97,7 +98,7 @@ const CommandPalette = ({ isOpen, onClose, snippets = [], projects = [], onSelec
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Search files and commands..."
-            className="flex-1 bg-transparent border-none outline-none text-lg text-slate-900 dark:text-white placeholder-slate-400"
+            className="flex-1 bg-transparent border-none outline-none text-lg"
           />
           <div className="flex gap-2">
             <kbd className="hidden sm:inline-block px-2 py-1 text-xs font-mono text-slate-500 bg-slate-100 dark:bg-slate-800 rounded border border-slate-200 dark:border-slate-700">
@@ -119,7 +120,7 @@ const CommandPalette = ({ isOpen, onClose, snippets = [], projects = [], onSelec
                   }}
                   className={`px-4 py-3 flex items-center gap-3 cursor-pointer transition-colors ${
                     index === selectedIndex
-                      ? 'bg-primary-50 dark:bg-primary-900/20'
+                      ? 'bg-sky-100 dark:bg-sky-900/30'
                       : 'hover:bg-slate-50 dark:hover:bg-slate-800/50'
                   }`}
                 >
@@ -135,13 +136,7 @@ const CommandPalette = ({ isOpen, onClose, snippets = [], projects = [], onSelec
 
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between mb-0.5">
-                      <span
-                        className={`font-medium truncate ${
-                          index === selectedIndex
-                            ? 'text-primary-700 dark:text-primary-300'
-                            : 'text-slate-900 dark:text-white'
-                        }`}
-                      >
+                      <span className="font-medium truncate">
                         {item.title}
                       </span>
                       {index === selectedIndex && (
