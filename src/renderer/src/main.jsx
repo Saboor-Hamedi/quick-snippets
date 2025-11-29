@@ -31,10 +31,12 @@ const applyThemeFromDB = async () => {
         if (colors.border) root.style.setProperty('--border-color', colors.border)
         // Hover/selected tuning
         if (row.name === 'polaris') {
-          root.style.setProperty('--hover-bg', 'rgba(0,0,0,0.05)')
+          root.style.setProperty('--hover-bg', '#f1f5f9')
           root.style.setProperty('--hover-text', '#1e293b')
-          root.style.setProperty('--selected-bg', '#e2e8f0')
-          root.style.setProperty('--selected-text', '#0f172a')
+          root.style.setProperty('--selected-bg', '#e0f2fe')
+          root.style.setProperty('--selected-text', '#0284c7')
+          root.style.setProperty('--sidebar-text', '#334155')
+          root.style.setProperty('--sidebar-header-text', '#475569')
         } else if (row.name === 'midnight-pro') {
           root.style.setProperty('--hover-bg', '#21262d')
           root.style.setProperty('--hover-text', '#ffffff')
@@ -56,7 +58,7 @@ const applyThemeFromDB = async () => {
   } catch {}
 }
 
-(async () => {
+;(async () => {
   await applyThemeFromDB()
   createRoot(document.getElementById('root')).render(
     <StrictMode>

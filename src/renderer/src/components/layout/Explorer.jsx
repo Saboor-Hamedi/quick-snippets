@@ -143,13 +143,13 @@ const Explorer = ({
                     ${
                       isSelected
                         ? 'bg-[var(--selected-bg)] text-[var(--selected-text)] font-medium shadow-sm'
-                        : 'text-[var(--text-main)] hover:bg-[var(--hover-bg)] hover:text-[var(--hover-text)]'
+                        : 'text-[var(--sidebar-text)] hover:bg-[var(--hover-bg)] hover:text-[var(--hover-text)]'
                     }
-                  `}
+                `}
                 >
                   {/* File Icon */}
                   <span
-                    className={`flex-shrink-0 ${isSelected ? 'opacity-100' : 'opacity-80'} text-[#333] dark:text-slate-300`}
+                    className={`flex-shrink-0 ${isSelected ? 'opacity-100' : 'opacity-80'} transition-opacity group-hover:opacity-100`}
                   >
                     {getFileIcon(item)}
                   </span>

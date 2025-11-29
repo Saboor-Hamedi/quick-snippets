@@ -229,7 +229,7 @@ const SnippetEditor = ({ onSave, initialSnippet, onCancel, onNew }) => {
                 : `${Math.round((1 - splitRatio) * 100)}% ${dividerWidth}px ${Math.round(splitRatio * 100)}%`,
             minHeight: 0,
             userSelect: resizingRef.current ? 'none' : 'auto',
-            overflowY: 'hidden',
+            overflow: 'hidden',
             alignItems: 'stretch'
           }}
           className="flex-1 min-h-0"
@@ -260,7 +260,7 @@ const SnippetEditor = ({ onSave, initialSnippet, onCancel, onNew }) => {
               )}
             </div>
           ) : (
-            <div className="h-full min-h-0 overflow-auto" style={{ maxHeight: '100%' }}>
+            <div className="h-full min-h-0 overflow-hidden" style={{ maxHeight: '100%' }}>
               <textarea
                 key={`left-${layoutMode}-${previewPosition}`}
                 placeholder="Type your snippets here..."
@@ -313,7 +313,7 @@ const SnippetEditor = ({ onSave, initialSnippet, onCancel, onNew }) => {
                 )}
               </div>
             ) : (
-              <div className="h-full min-h-0 overflow-auto" style={{ maxHeight: '100%' }}>
+              <div className="h-full min-h-0 overflow-hidden" style={{ maxHeight: '100%' }}>
                 <textarea
                   key={`right-${layoutMode}-${previewPosition}`}
                   placeholder="Type your snippets here..."

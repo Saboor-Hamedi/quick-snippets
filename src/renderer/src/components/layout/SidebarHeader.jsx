@@ -3,12 +3,14 @@ import PropTypes from 'prop-types'
 import { Plus } from 'lucide-react'
 
 const SidebarHeader = ({ title, count, itemLabel, onAction }) => (
-  <div className="flex items-center justify-between border-b border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 flex-shrink-0 transition-colors duration-200">
+  <div
+    className="flex items-center justify-between border-b flex-shrink-0 transition-colors duration-200"
+    style={{ backgroundColor: 'var(--color-background-soft)', borderColor: 'var(--border-color)' }}
+  >
     <div className="flex items-center gap-3 p-2 ">
-      <h1 className="text-sm font-medium text-slate-900 dark:text-white">{title}</h1>
+      <h1 className="text-sm font-medium" style={{ color: 'var(--sidebar-header-text)' }}>{title}</h1>
       <>
-        {/* If you want to show number of snippets */}
-        <p className="text-xs text-slate-500 ">
+        <p className="text-xs" style={{ color: 'var(--sidebar-header-text)' }}>
           {count}
           {count !== 1 ? 's' : ''}
         </p>
@@ -18,7 +20,8 @@ const SidebarHeader = ({ title, count, itemLabel, onAction }) => (
     {onAction && (
       <button
         onClick={onAction}
-        className="flex-shrink-0 p-1 hover:bg-slate-100 dark:hover:bg-slate-800 rounded text-slate-500 hover:text-slate-900 dark:text-slate-400 dark:hover:text-white transition-colors"
+        className="flex-shrink-0 p-1 rounded transition-colors"
+        style={{ color: 'var(--sidebar-header-text)' }}
         title={`New ${itemLabel || 'Item'}`}
       >
         <Plus size={12} />
