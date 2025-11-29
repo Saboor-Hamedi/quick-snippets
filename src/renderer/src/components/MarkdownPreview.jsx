@@ -124,6 +124,26 @@ const MarkdownPreview = ({ content, onSnippetClick, snippets = [], language }) =
 }
 
 const renderWithTagsAndMentions = (children, snippets, onSnippetClick, language) => {
+  const getExt = (lang) => {
+    const m = {
+      javascript: '.js',
+      js: '.js',
+      jsx: '.js',
+      python: '.py',
+      py: '.py',
+      html: '.html',
+      xml: '.xml',
+      css: '.css',
+      sql: '.sql',
+      bash: '.sh',
+      sh: '.sh',
+      java: '.java',
+      cpp: '.cpp',
+      markdown: '.md',
+      md: '.md'
+    }
+    return m[(lang || '').toLowerCase()] || ''
+  }
   const renderText = (text, keyBase) => {
     const parts = String(text || '').split(/(#[a-zA-Z0-9_.-]+|@[a-zA-Z0-9_.-]+)/g)
     return parts.map((part, i) => {
@@ -138,12 +158,13 @@ const renderWithTagsAndMentions = (children, snippets, onSnippetClick, language)
         )
       }
       if (part.startsWith('@')) {
-        const snippetName = part.slice(1)
-        const matchedSnippet = (snippets || []).find(
-          (s) =>
-            (s.title || '').toLowerCase().replace(/\s+/g, '-') === snippetName.toLowerCase() ||
-            (s.title || '').toLowerCase() === snippetName.toLowerCase()
-        )
+        const snippetName = part.slice(1).toLowerCase()
+        const matchedSnippet = (snippets || []).find((s) => {
+          const title = (s.title || '').toLowerCase()
+          const hyph = title.replace(/\s+/g, '-')
+          const fname = title.includes('.') ? title : `${title}${getExt(s.language)}`
+          return snippetName === hyph || snippetName === title || snippetName === fname
+        })
         if (matchedSnippet && onSnippetClick) {
           return (
             <button

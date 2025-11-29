@@ -9,6 +9,7 @@ import MarkdownPreview from './MarkdownPreview.jsx'
 import ViewToolbar from './ViewToolbar'
 import WelcomePage from './WelcomePage'
 import ContextMenu from './ContextMenu'
+import StatusBar from './StatusBar.jsx'
 
 const SnippetEditor = ({
   onSave,
@@ -84,6 +85,7 @@ const SnippetEditor = ({
     const has = (r) => r.test(t)
     let detected = 'txt'
     if (has(/^\s*<\w|<!DOCTYPE|<html[\s>]/i)) detected = 'html'
+    else if (has(/<\?php|<\?=|\$\w+|->|::/)) detected = 'php'
     else if (has(/\b(def|import\s+\w+|from\s+\w+|print\(|elif|except|with)\b/)) detected = 'py'
     else if (has(/\b(function|const|let|var|=>|console\.log|class\s+\w+)\b/)) detected = 'js'
     else if (has(/\{[\s\S]*\}|:\s*\w+;|@media|--[a-z-]+:/)) detected = 'css'
@@ -136,11 +138,32 @@ const SnippetEditor = ({
     e.preventDefault()
     const slug = (el.getAttribute('data-slug') || '').toLowerCase()
     const list = [...(snippets || []), ...(projects || [])]
-    const matched = list.find(
-      (s) =>
-        (s.title || '').toLowerCase().replace(/\s+/g, '-') === slug ||
-        (s.title || '').toLowerCase() === slug
-    )
+    const getExt = (lang) => {
+      const m = {
+        javascript: '.js',
+        js: '.js',
+        jsx: '.js',
+        python: '.py',
+        py: '.py',
+        html: '.html',
+        xml: '.xml',
+        css: '.css',
+        sql: '.sql',
+        bash: '.sh',
+        sh: '.sh',
+        java: '.java',
+        cpp: '.cpp',
+        markdown: '.md',
+        md: '.md'
+      }
+      return m[(lang || '').toLowerCase()] || ''
+    }
+    const matched = list.find((s) => {
+      const title = (s.title || '').toLowerCase()
+      const hyph = title.replace(/\s+/g, '-')
+      const fname = title.includes('.') ? title : `${title}${getExt(s.language)}`
+      return slug === hyph || slug === title || slug === fname
+    })
     if (matched && typeof onSnippetMentionClick === 'function') {
       onSnippetMentionClick(matched)
     }
@@ -380,73 +403,156 @@ const SnippetEditor = ({
   }
 
   return (
-    // Guard: if not in create mode and there's no valid snippet, show Welcome
-    !isCreateMode && (!initialSnippet || !initialSnippet.id) ? (
-      <WelcomePage onNewSnippet={onNew} onNewProject={onNewProject} />
-    ) : (
-      <div
-        ref={outerRef}
-        className="h-full flex flex-col items-stretch bg-slate-50 dark:bg-[#0d1117] transition-colors duration-200 relative"
-        onContextMenu={(e) => {
-          e.preventDefault()
-          setMenu({ x: e.clientX, y: e.clientY })
-        }}
-      >
-        <ViewToolbar
-          onNew={onNew}
-          layoutMode={layoutMode}
-          setLayoutMode={setLayoutMode}
-          previewPosition={previewPosition}
-          setPreviewPosition={setPreviewPosition}
-          resetSplit={() => setSplitRatio(0.5)}
-        />
-        {layoutMode === 'split' && (
+    <>
+      {
+        // Guard: if not in create mode and there's no valid snippet, show Welcome
+        !isCreateMode && (!initialSnippet || !initialSnippet.id) ? (
+          <WelcomePage onNewSnippet={onNew} onNewProject={onNewProject} />
+        ) : (
           <div
-            ref={containerRef}
-            style={{
-              display: 'grid',
-              gridTemplateColumns:
-                previewPosition === 'left'
-                  ? `${Math.round(splitRatio * 100)}% ${dividerWidth}px ${Math.round((1 - splitRatio) * 100)}%`
-                  : `${Math.round((1 - splitRatio) * 100)}% ${dividerWidth}px ${Math.round(splitRatio * 100)}%`,
-              minHeight: 0,
-              userSelect: resizingRef.current ? 'none' : 'auto',
-              overflow: 'hidden',
-              alignItems: 'stretch'
+            ref={outerRef}
+            className="h-full flex flex-col items-stretch bg-slate-50 dark:bg-[#0d1117] transition-colors duration-200 relative"
+            onContextMenu={(e) => {
+              e.preventDefault()
+              setMenu({ x: e.clientX, y: e.clientY })
             }}
-            className="flex-1 min-h-0"
           >
-            {previewPosition === 'left' ? (
+            <ViewToolbar
+              onNew={onNew}
+              layoutMode={layoutMode}
+              setLayoutMode={setLayoutMode}
+              previewPosition={previewPosition}
+              setPreviewPosition={setPreviewPosition}
+              resetSplit={() => setSplitRatio(0.5)}
+            />
+            {layoutMode === 'split' && (
               <div
-                ref={previewRef}
-                className="h-full min-h-0 overflow-auto bg-transparent preview-container"
-                style={{ maxHeight: '100%' }}
+                ref={containerRef}
+                style={{
+                  display: 'grid',
+                  gridTemplateColumns:
+                    previewPosition === 'left'
+                      ? `${Math.round(splitRatio * 100)}% ${dividerWidth}px ${Math.round((1 - splitRatio) * 100)}%`
+                      : `${Math.round((1 - splitRatio) * 100)}% ${dividerWidth}px ${Math.round(splitRatio * 100)}%`,
+                  minHeight: 0,
+                  userSelect: resizingRef.current ? 'none' : 'auto',
+                  overflow: 'hidden',
+                  alignItems: 'stretch'
+                }}
+                className="flex-1 min-h-0"
               >
-                {showMarkdown ? (
-                  <MarkdownPreview
-                    content={code}
-                    snippets={[...(snippets || []), ...(projects || [])]}
-                    language={language}
-                    onSnippetClick={onSnippetMentionClick}
-                  />
-                ) : (
-                  <div className="p-4" onClick={handleMentionClickInPreview}>
-                    <pre className="text-xs font-mono leading-5 m-0">
-                      <code
-                        className="hljs block text-slate-700 dark:text-slate-300"
-                        dangerouslySetInnerHTML={{ __html: enhancedHtml }}
+                {previewPosition === 'left' ? (
+                  <div
+                    ref={previewRef}
+                    className="h-full min-h-0 overflow-auto bg-transparent preview-container"
+                    style={{ maxHeight: '100%' }}
+                  >
+                    {showMarkdown ? (
+                      <MarkdownPreview
+                        content={code}
+                        snippets={[...(snippets || []), ...(projects || [])]}
+                        language={language}
+                        onSnippetClick={onSnippetMentionClick}
                       />
-                    </pre>
+                    ) : (
+                      <div className="p-4">
+                        <pre className="text-xs font-mono leading-5 m-0">
+                          <code
+                            onClick={handleMentionClickInPreview}
+                            style={{ userSelect: 'text', cursor: 'text' }}
+                            className="hljs block text-slate-700 dark:text-slate-300"
+                            dangerouslySetInnerHTML={{ __html: enhancedHtml }}
+                          />
+                        </pre>
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    className="h-full min-h-0 overflow-hidden editor-container"
+                    style={{ maxHeight: '100%' }}
+                  >
+                    <textarea
+                      key={`left-${layoutMode}-${previewPosition}`}
+                      placeholder="Type your snippets here..."
+                      value={code}
+                      ref={textareaRef}
+                      onChange={(e) => setCode(e.target.value)}
+                      onInput={updateMention}
+                      onKeyUp={updateMention}
+                      onKeyDown={handleKeyDown}
+                      className="w-full h-full overflow-y-auto text-slate-800 dark:text-white p-4 font-mono text-sm resize-none border-none outline-none focus:outline-none focus:ring-0 leading-relaxed tracking-normal transition-colors duration-200 editor-textarea"
+                      style={{ backgroundColor: 'var(--color-background)' }}
+                      spellCheck="false"
+                      autoFocus
+                    />
                   </div>
                 )}
+
+                {canPreview ? (
+                  <div
+                    onMouseDown={startResize}
+                    onDoubleClick={() => setSplitRatio(0.5)}
+                    style={{ width: `${dividerWidth}px` }}
+                    className="cursor-col-resize bg-slate-200 dark:bg-slate-700"
+                  />
+                ) : null}
+
+                {canPreview ? (
+                  previewPosition === 'right' ? (
+                    <div
+                      ref={previewRef}
+                      className="h-full min-h-0 overflow-auto bg-transparent preview-container"
+                      style={{ maxHeight: '100%' }}
+                    >
+                      {showMarkdown ? (
+                        <MarkdownPreview
+                          content={code}
+                          snippets={[...(snippets || []), ...(projects || [])]}
+                          language={language}
+                          onSnippetClick={onSnippetMentionClick}
+                        />
+                      ) : (
+                        <div className="p-4">
+                          <pre className="text-xs font-mono leading-5 m-0">
+                            <code
+                              onClick={handleMentionClickInPreview}
+                              style={{ userSelect: 'text', cursor: 'text' }}
+                              className="hljs block text-slate-700 dark:text-slate-300"
+                              dangerouslySetInnerHTML={{ __html: enhancedHtml }}
+                            />
+                          </pre>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <div
+                      className="h-full min-h-0 overflow-hidden editor-container"
+                      style={{ maxHeight: '100%' }}
+                    >
+                      <textarea
+                        key={`right-${layoutMode}-${previewPosition}`}
+                        placeholder="Type your snippets here..."
+                        value={code}
+                        ref={textareaRef}
+                        onChange={(e) => setCode(e.target.value)}
+                        onInput={updateMention}
+                        onKeyUp={updateMention}
+                        onKeyDown={handleKeyDown}
+                        className="w-full h-full overflow-y-auto text-slate-800 dark:text-white p-4 font-mono text-sm resize-none border-none outline-none focus:outline-none focus:ring-0 leading-relaxed tracking-normal transition-colors duration-200 editor-textarea"
+                        style={{ backgroundColor: 'var(--color-background)' }}
+                        spellCheck="false"
+                        autoFocus
+                      />
+                    </div>
+                  )
+                ) : null}
               </div>
-            ) : (
-              <div
-                className="h-full min-h-0 overflow-hidden editor-container"
-                style={{ maxHeight: '100%' }}
-              >
+            )}
+
+            {layoutMode === 'editor' && (
+              <div className="flex-1 min-h-0 overflow-hidden editor-container">
                 <textarea
-                  key={`left-${layoutMode}-${previewPosition}`}
                   placeholder="Type your snippets here..."
                   value={code}
                   ref={textareaRef}
@@ -462,20 +568,11 @@ const SnippetEditor = ({
               </div>
             )}
 
-            {canPreview ? (
-              <div
-                onMouseDown={startResize}
-                onDoubleClick={() => setSplitRatio(0.5)}
-                style={{ width: `${dividerWidth}px` }}
-                className="cursor-col-resize bg-slate-200 dark:bg-slate-700"
-              />
-            ) : null}
-
-            {canPreview ? (
-              previewPosition === 'right' ? (
+            {layoutMode === 'preview' && canPreview && (
+              <div className="flex-1 min-h-0 overflow-hidden preview-container">
                 <div
                   ref={previewRef}
-                  className="h-full min-h-0 overflow-auto bg-transparent preview-container"
+                  className="h-full min-h-0 overflow-auto bg-transparent"
                   style={{ maxHeight: '100%' }}
                 >
                   {showMarkdown ? (
@@ -486,9 +583,11 @@ const SnippetEditor = ({
                       onSnippetClick={onSnippetMentionClick}
                     />
                   ) : (
-                    <div className="p-4" onClick={handleMentionClickInPreview}>
+                    <div className="p-4">
                       <pre className="text-xs font-mono leading-5 m-0">
                         <code
+                          onClick={handleMentionClickInPreview}
+                          style={{ userSelect: 'text', cursor: 'text' }}
                           className="hljs block text-slate-700 dark:text-slate-300"
                           dangerouslySetInnerHTML={{ __html: enhancedHtml }}
                         />
@@ -496,247 +595,183 @@ const SnippetEditor = ({
                     </div>
                   )}
                 </div>
-              ) : (
-                <div
-                  className="h-full min-h-0 overflow-hidden editor-container"
-                  style={{ maxHeight: '100%' }}
-                >
-                  <textarea
-                    key={`right-${layoutMode}-${previewPosition}`}
-                    placeholder="Type your snippets here..."
-                    value={code}
-                    ref={textareaRef}
-                    onChange={(e) => setCode(e.target.value)}
-                    onInput={updateMention}
-                    onKeyUp={updateMention}
-                    onKeyDown={handleKeyDown}
-                    className="w-full h-full overflow-y-auto text-slate-800 dark:text-white p-4 font-mono text-sm resize-none border-none outline-none focus:outline-none focus:ring-0 leading-relaxed tracking-normal transition-colors duration-200 editor-textarea"
-                    style={{ backgroundColor: 'var(--color-background)' }}
-                    spellCheck="false"
-                    autoFocus
-                  />
-                </div>
-              )
-            ) : null}
-          </div>
-        )}
-
-        {layoutMode === 'editor' && (
-          <div className="flex-1 min-h-0 overflow-hidden editor-container">
-            <textarea
-              placeholder="Type your snippets here..."
-              value={code}
-              ref={textareaRef}
-              onChange={(e) => setCode(e.target.value)}
-              onInput={updateMention}
-              onKeyUp={updateMention}
-              onKeyDown={handleKeyDown}
-              className="w-full h-full overflow-y-auto text-slate-800 dark:text-white p-4 font-mono text-sm resize-none border-none outline-none focus:outline-none focus:ring-0 leading-relaxed tracking-normal transition-colors duration-200 editor-textarea"
-              style={{ backgroundColor: 'var(--color-background)' }}
-              spellCheck="false"
-              autoFocus
-            />
-          </div>
-        )}
-
-        {layoutMode === 'preview' && canPreview && (
-          <div className="flex-1 min-h-0 overflow-hidden preview-container">
-            <div
-              ref={previewRef}
-              className="h-full min-h-0 overflow-auto bg-transparent"
-              style={{ maxHeight: '100%' }}
-            >
-              {showMarkdown ? (
-                <MarkdownPreview
-                  content={code}
-                  snippets={[...(snippets || []), ...(projects || [])]}
-                  language={language}
-                  onSnippetClick={onSnippetMentionClick}
-                />
-              ) : (
-                <div className="p-4" onClick={handleMentionClickInPreview}>
-                  <pre className="text-xs font-mono leading-5 m-0">
-                    <code
-                      className="hljs block text-slate-700 dark:text-slate-300"
-                      dangerouslySetInnerHTML={{ __html: enhancedHtml }}
-                    />
-                  </pre>
-                </div>
-              )}
-            </div>
-          </div>
-        )}
-
-        {!initialSnippet?.title && initialSnippet?.type !== 'project' && (
-          <div className="absolute bottom-4 right-4">
-            <button
-              onClick={handleSave}
-              className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded shadow-lg text-sm font-medium transition-colors"
-            >
-              Save
-            </button>
-          </div>
-        )}
-
-        {menu && (
-          <ContextMenu
-            x={menu.x}
-            y={menu.y}
-            onClose={() => setMenu(null)}
-            onCut={() => {
-              setMenu(null)
-              document.execCommand('cut')
-            }}
-            onCopy={() => {
-              setMenu(null)
-              const ta = textareaRef.current
-              if (!ta) return
-              const selText = ta.value.substring(ta.selectionStart, ta.selectionEnd)
-              if (selText) navigator.clipboard.writeText(selText)
-            }}
-            onPaste={() => {
-              setMenu(null)
-              const ta = textareaRef.current
-              if (!ta) return
-              ta.focus()
-              navigator.clipboard.readText().then((txt) => {
-                const start = ta.selectionStart
-                const end = ta.selectionEnd
-                const newVal = (code || '').slice(0, start) + txt + (code || '').slice(end)
-                setCode(newVal)
-                const caret = start + txt.length
-                requestAnimationFrame(() => {
-                  ta.selectionStart = caret
-                  ta.selectionEnd = caret
-                })
-              })
-            }}
-            onSelectAll={() => {
-              setMenu(null)
-              textareaRef.current?.focus()
-              const ta = textareaRef.current
-              if (!ta) return
-              ta.selectionStart = 0
-              ta.selectionEnd = (code || '').length
-            }}
-            onDelete={() => {
-              setMenu(null)
-              if (initialSnippet?.id && window.confirm('Delete this snippet?')) {
-                isDeletingRef.current = true
-                if (typeof onDelete === 'function') onDelete(initialSnippet.id)
-              }
-            }}
-          />
-        )}
-
-        {mentionOpen && (
-          <div
-            className="fixed text-sm"
-            style={{
-              position: 'fixed',
-              left: mentionPos.x,
-              top: mentionPos.y,
-              zIndex: 10000,
-              backgroundColor: 'rgba(255, 250, 200, 0.98)',
-              color: '#1f2937',
-              border: '2px solid #f59e0b',
-              borderRadius: 8,
-              boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-              pointerEvents: 'auto'
-            }}
-          >
-            {mentionItems.length > 0 ? (
-              mentionItems.map((s) => (
-                <button
-                  key={s.id}
-                  onMouseDown={(e) => {
-                    e.preventDefault()
-                    insertMention(s)
-                  }}
-                  className="flex items-center gap-2 px-3 py-2 w-full text-left hover:bg-yellow-100"
-                >
-                  <span className="font-medium text-slate-900 truncate">
-                    @{(s.title || '').toLowerCase().replace(/\s+/g, '-')}
-                  </span>
-                  <span className="text-xs text-slate-600 truncate">{s.title}</span>
-                </button>
-              ))
-            ) : (
-              <div className="px-3 py-2 text-slate-700">No matches</div>
-            )}
-          </div>
-        )}
-
-        {nameOpen && (
-          <div className="absolute inset-0 flex items-center justify-center bg-black/40">
-            <div className="bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-[#30363d] rounded p-4 w-80">
-              <div className="text-sm mb-2 text-slate-700 dark:text-slate-200">
-                Enter a name (optionally with extension)
               </div>
-              <input
-                value={nameInput}
-                onChange={(e) => setNameInput(e.target.value)}
-                className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-[#30363d] rounded text-slate-800 dark:text-slate-200"
-                placeholder="e.g. hello.js or notes"
-                autoFocus
-              />
-              <div className="flex justify-end gap-2 mt-3">
+            )}
+
+            {!initialSnippet?.title && initialSnippet?.type !== 'project' && (
+              <div className="absolute bottom-4 right-4">
                 <button
-                  onClick={() => setNameOpen(false)}
-                  className="px-3 py-1.5 text-sm bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded"
-                >
-                  Cancel
-                </button>
-                <button
-                  onClick={() => {
-                    const t = nameInput.trim()
-                    if (!t) return
-                    const hasExt = /\.[^\.\s]+$/.test(t)
-                    const extMap = {
-                      js: 'js',
-                      jsx: 'js',
-                      ts: 'js',
-                      py: 'py',
-                      html: 'html',
-                      css: 'css',
-                      json: 'json',
-                      sql: 'sql',
-                      cpp: 'cpp',
-                      h: 'cpp',
-                      java: 'java',
-                      sh: 'sh',
-                      md: 'md',
-                      txt: 'txt'
-                    }
-                    let lang = language
-                    if (hasExt) {
-                      const ext = t.split('.').pop().toLowerCase()
-                      lang = extMap[ext] || lang
-                    } else {
-                      lang = 'txt'
-                    }
-                    const payload = {
-                      id: initialSnippet?.id || Date.now().toString(),
-                      title: t,
-                      code: code,
-                      language: lang,
-                      timestamp: Date.now(),
-                      type:
-                        initialSnippet?.type || (activeView === 'projects' ? 'project' : 'snippet')
-                    }
-                    setNameOpen(false)
-                    onSave(payload)
-                  }}
-                  className="px-3 py-1.5 text-sm bg-primary-600 hover:bg-primary-700 text-white rounded"
+                  onClick={handleSave}
+                  className="px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white rounded shadow-lg text-sm font-medium transition-colors"
                 >
                   Save
                 </button>
               </div>
-            </div>
+            )}
+
+            {menu && (
+              <ContextMenu
+                x={menu.x}
+                y={menu.y}
+                onClose={() => setMenu(null)}
+                onCut={() => {
+                  setMenu(null)
+                  document.execCommand('cut')
+                }}
+                onCopy={() => {
+                  setMenu(null)
+                  const ta = textareaRef.current
+                  if (!ta) return
+                  const selText = ta.value.substring(ta.selectionStart, ta.selectionEnd)
+                  if (selText) navigator.clipboard.writeText(selText)
+                }}
+                onPaste={() => {
+                  setMenu(null)
+                  const ta = textareaRef.current
+                  if (!ta) return
+                  ta.focus()
+                  navigator.clipboard.readText().then((txt) => {
+                    const start = ta.selectionStart
+                    const end = ta.selectionEnd
+                    const newVal = (code || '').slice(0, start) + txt + (code || '').slice(end)
+                    setCode(newVal)
+                    const caret = start + txt.length
+                    requestAnimationFrame(() => {
+                      ta.selectionStart = caret
+                      ta.selectionEnd = caret
+                    })
+                  })
+                }}
+                onSelectAll={() => {
+                  setMenu(null)
+                  textareaRef.current?.focus()
+                  const ta = textareaRef.current
+                  if (!ta) return
+                  ta.selectionStart = 0
+                  ta.selectionEnd = (code || '').length
+                }}
+                onDelete={() => {
+                  setMenu(null)
+                  if (initialSnippet?.id && window.confirm('Delete this snippet?')) {
+                    isDeletingRef.current = true
+                    if (typeof onDelete === 'function') onDelete(initialSnippet.id)
+                  }
+                }}
+              />
+            )}
+
+            {mentionOpen && (
+              <div
+                className="fixed text-sm"
+                style={{
+                  position: 'fixed',
+                  left: mentionPos.x,
+                  top: mentionPos.y,
+                  zIndex: 10000,
+                  backgroundColor: 'rgba(255, 250, 200, 0.98)',
+                  color: '#1f2937',
+                  border: '2px solid #f59e0b',
+                  borderRadius: 8,
+                  boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
+                  pointerEvents: 'auto'
+                }}
+              >
+                {mentionItems.length > 0 ? (
+                  mentionItems.map((s) => (
+                    <button
+                      key={s.id}
+                      onMouseDown={(e) => {
+                        e.preventDefault()
+                        insertMention(s)
+                      }}
+                      className="flex items-center gap-2 px-3 py-2 w-full text-left hover:bg-yellow-100"
+                    >
+                      <span className="font-medium text-slate-900 truncate">
+                        @{(s.title || '').toLowerCase().replace(/\s+/g, '-')}
+                      </span>
+                      <span className="text-xs text-slate-600 truncate">{s.title}</span>
+                    </button>
+                  ))
+                ) : (
+                  <div className="px-3 py-2 text-slate-700">No matches</div>
+                )}
+              </div>
+            )}
+
+            {nameOpen && (
+              <div className="absolute inset-0 flex items-center justify-center bg-black/40">
+                <div className="bg-white dark:bg-[#0d1117] border border-slate-200 dark:border-[#30363d] rounded p-4 w-80">
+                  <div className="text-sm mb-2 text-slate-700 dark:text-slate-200">
+                    Enter a name (optionally with extension)
+                  </div>
+                  <input
+                    value={nameInput}
+                    onChange={(e) => setNameInput(e.target.value)}
+                    className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-[#30363d] rounded text-slate-800 dark:text-slate-200"
+                    placeholder="e.g. hello.js or notes"
+                    autoFocus
+                  />
+                  <div className="flex justify-end gap-2 mt-3">
+                    <button
+                      onClick={() => setNameOpen(false)}
+                      className="px-3 py-1.5 text-sm bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-200 rounded"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={() => {
+                        const t = nameInput.trim()
+                        if (!t) return
+                        const hasExt = /\.[^\.\s]+$/.test(t)
+                        const extMap = {
+                          js: 'js',
+                          jsx: 'js',
+                          ts: 'js',
+                          py: 'py',
+                          html: 'html',
+                          css: 'css',
+                          json: 'json',
+                          sql: 'sql',
+                          cpp: 'cpp',
+                          h: 'cpp',
+                          java: 'java',
+                          sh: 'sh',
+                          md: 'md',
+                          txt: 'txt'
+                        }
+                        let lang = language
+                        if (hasExt) {
+                          const ext = t.split('.').pop().toLowerCase()
+                          lang = extMap[ext] || lang
+                        } else {
+                          lang = 'txt'
+                        }
+                        const payload = {
+                          id: initialSnippet?.id || Date.now().toString(),
+                          title: t,
+                          code: code,
+                          language: lang,
+                          timestamp: Date.now(),
+                          type:
+                            initialSnippet?.type ||
+                            (activeView === 'projects' ? 'project' : 'snippet')
+                        }
+                        setNameOpen(false)
+                        onSave(payload)
+                      }}
+                      className="px-3 py-1.5 text-sm bg-primary-600 hover:bg-primary-700 text-white rounded"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              </div>
+            )}
+            <StatusBar language={language} />
           </div>
-        )}
-      </div>
-    )
+        )
+      }
+    </>
   )
 }
 

@@ -12,6 +12,7 @@ import bash from 'highlight.js/lib/languages/bash'
 import sql from 'highlight.js/lib/languages/sql'
 import cpp from 'highlight.js/lib/languages/cpp'
 import java from 'highlight.js/lib/languages/java'
+import php from 'highlight.js/lib/languages/php'
 
 // Register languages
 hljs.registerLanguage('javascript', javascript)
@@ -25,6 +26,7 @@ hljs.registerLanguage('bash', bash)
 hljs.registerLanguage('sql', sql)
 hljs.registerLanguage('cpp', cpp)
 hljs.registerLanguage('java', java)
+hljs.registerLanguage('php', php)
 
 // Language aliases mapping
 const languageMap = {
@@ -32,7 +34,8 @@ const languageMap = {
   py: 'python',
   sh: 'bash',
   md: 'markdown',
-  txt: 'txt'
+  txt: 'txt',
+  php: 'php'
 }
 
 const useHighlight = (code, language = 'txt') => {
