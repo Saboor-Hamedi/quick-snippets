@@ -31,19 +31,21 @@ export const useSnippetData = () => {
   const saveSnippet = async (snippet, options = {}) => {
     try {
       if (window.api?.saveSnippet) {
-        await window.api.saveSnippet(snippet)
+        // Enforce type 'snippet'
+        const payload = { ...snippet, type: 'snippet' }
+        await window.api.saveSnippet(payload)
         // Update local list in-place to avoid flicker
         setSnippets((prev) => {
-          const exists = prev.some((s) => s.id === snippet.id)
+          const exists = prev.some((s) => s.id === payload.id)
           return exists
-            ? prev.map((s) => (s.id === snippet.id ? { ...s, ...snippet } : s))
-            : [{ ...snippet }, ...prev]
+            ? prev.map((s) => (s.id === payload.id ? { ...s, ...payload } : s))
+            : [{ ...payload }, ...prev]
         })
         // C. IMPORTANT: Update the Active View Immediately!
         // If the item we just saved is the one currently open, update the state.
         if (!options.skipSelectedUpdate) {
-          if (selectedSnippet && selectedSnippet.id === snippet.id) {
-            setSelectedSnippet(snippet)
+          if (selectedSnippet && selectedSnippet.id === payload.id) {
+            setSelectedSnippet(payload)
           }
         }
         showToast('✓ Snippet saved successfully')
@@ -72,13 +74,14 @@ export const useSnippetData = () => {
         showToast('✓ Snippet deleted')
       } else if (isProject && window.api?.deleteProject) {
         await window.api.deleteProject(id)
-        setProjects(projects.filter((p) => p.id !== id))
+        const next = projects.filter((p) => p.id !== id)
+        setProjects(next)
         showToast('✓ Project deleted')
-      }
 
-      // handled above for snippets; for projects, clear selection if deleted
-      if (isProject && selectedSnippet?.id === id) {
-        setSelectedSnippet(null)
+        // Select next available project to keep editor open
+        if (selectedSnippet?.id === id) {
+          setSelectedSnippet(next.length ? next[0] : null)
+        }
       }
     } catch (error) {
       console.error('Failed to delete item:', error)
@@ -112,18 +115,20 @@ export const useSnippetData = () => {
   const saveProject = async (project, options = {}) => {
     try {
       if (window.api?.saveProject) {
-        await window.api.saveProject(project)
+        // Enforce type 'project'
+        const payload = { ...project, type: 'project' }
+        await window.api.saveProject(payload)
         // Update local list in-place to avoid flicker
         setProjects((prev) => {
-          const exists = prev.some((p) => p.id === project.id)
+          const exists = prev.some((p) => p.id === payload.id)
           return exists
-            ? prev.map((p) => (p.id === project.id ? { ...p, ...project } : p))
-            : [{ ...project }, ...prev]
+            ? prev.map((p) => (p.id === payload.id ? { ...p, ...payload } : p))
+            : [{ ...payload }, ...prev]
         })
         // Update selected item immediately if it's the one being edited
         if (!options.skipSelectedUpdate) {
-          if (selectedSnippet && selectedSnippet.id === project.id) {
-            setSelectedSnippet(project)
+          if (selectedSnippet && selectedSnippet.id === payload.id) {
+            setSelectedSnippet(payload)
           }
         }
         showToast('✓ Project saved successfully')

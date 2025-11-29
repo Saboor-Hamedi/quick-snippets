@@ -18,7 +18,8 @@ const SnippetEditor = ({
   onNew,
   onDelete,
   onNewProject,
-  isCreateMode
+  isCreateMode,
+  activeView
 }) => {
   const { code, setCode, textareaRef, handleKeyDown } = useTextEditor(initialSnippet?.code || '')
   const [language, setLanguage] = React.useState(initialSnippet?.language || 'txt')
@@ -232,7 +233,7 @@ const SnippetEditor = ({
       code: code,
       language: lang,
       timestamp: Date.now(),
-      type: initialSnippet?.type || 'snippet',
+      type: initialSnippet?.type || (activeView === 'projects' ? 'project' : 'snippet'),
       tags: extractTags(code)
     }
     onSave(payload)
@@ -520,7 +521,8 @@ const SnippetEditor = ({
                       code: code,
                       language: lang,
                       timestamp: Date.now(),
-                      type: initialSnippet?.type || 'snippet'
+                      type:
+                        initialSnippet?.type || (activeView === 'projects' ? 'project' : 'snippet')
                     }
                     setNameOpen(false)
                     onSave(payload)
@@ -550,7 +552,8 @@ SnippetEditor.propTypes = {
   onCancel: PropTypes.func,
   onDelete: PropTypes.func,
   onNewProject: PropTypes.func,
-  isCreateMode: PropTypes.bool
+  isCreateMode: PropTypes.bool,
+  activeView: PropTypes.string
 }
 
 export default SnippetEditor

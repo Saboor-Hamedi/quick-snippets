@@ -6,6 +6,15 @@ const CreateProjectModal = ({ isOpen, onClose, onSave }) => {
   const [description, setDescription] = useState('')
   const [language, setLanguage] = useState('javascript')
 
+  // Reset form when modal opens
+  React.useEffect(() => {
+    if (isOpen) {
+      setTitle('')
+      setDescription('')
+      setLanguage('javascript')
+    }
+  }, [isOpen])
+
   if (!isOpen) return null
 
   const handleSubmit = (e) => {
@@ -19,8 +28,14 @@ const CreateProjectModal = ({ isOpen, onClose, onSave }) => {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in">
-      <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4 border border-slate-200 dark:border-slate-700 transform transition-all scale-100">
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm animate-fade-in"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4 border border-slate-200 dark:border-slate-700 transform transition-all scale-100"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="px-4 py-2.5 border-b border-slate-200 dark:border-slate-700 flex justify-between items-center">
           <h3 className="text-sm font-semibold text-slate-900 dark:text-white">

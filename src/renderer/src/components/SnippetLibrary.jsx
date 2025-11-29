@@ -1,7 +1,6 @@
-import React, { useState, useEffect, useMemo } from 'react'
+import React, { useState, useEffect, useMemo, useRef } from 'react'
 import { useToast } from '../utils/ToastNotification'
 import { useSnippetData } from '../hook/useSnippetData'
-import SidebarHeader from './layout/SidebarHeader'
 // Components
 import ActivityBar from './layout/ActivityBar'
 import Sidebar from './layout/Sidebar'
@@ -25,9 +24,17 @@ const SnippetLibrary = () => {
   } = useSnippetData()
 
   // 2. UI STATE (Local only)
-  const [activeView, setActiveView] = useState('editor')
+  const [activeView, setActiveView] = useState(() => {
+    // Restore activeView from localStorage, default to 'snippets'
+    return localStorage.getItem('activeView') || 'snippets'
+  })
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
+
+  // Persist activeView to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('activeView', activeView)
+  }, [activeView])
 
   // Modals
   const [createProjectModalOpen, setCreateProjectModalOpen] = useState(false)
@@ -38,6 +45,7 @@ const SnippetLibrary = () => {
   const { toast, showToast } = useToast()
   const [activeSnippet, setActiveSnippet] = useState(null)
   const [activeProject, setActiveProject] = useState(null)
+  const modalKeyRef = useRef(0)
 
   // Ensure only items of current view are open
   useEffect(() => {
@@ -123,10 +131,14 @@ const SnippetLibrary = () => {
         e.preventDefault()
         setSidebarCollapsed((prev) => !prev)
       }
-      // Ctrl+N creates new snippet
+      // Ctrl+N creates new item based on context
       if ((e.ctrlKey || e.metaKey) && e.key === 'n' && !e.shiftKey) {
         e.preventDefault()
-        setIsCreatingSnippet(true)
+        if (activeView === 'projects') {
+          setCreateProjectModalOpen(true)
+        } else {
+          setIsCreatingSnippet(true)
+        }
       }
       // Ctrl+Shift+N creates new project
       if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'n') {
@@ -224,17 +236,43 @@ const SnippetLibrary = () => {
         (activeView === 'snippets' || activeView === 'projects') &&
         (selectedSnippet?.id === id || activeSnippet?.id === id || activeProject?.id === id)
 
+      // Determine type and list to calculate next item
+      const isProject = projects.some((p) => p.id === id)
+
+      // We need to know the remaining items *after* deletion to update local state
+      let nextItem = null
+      if (isProject) {
+        const remaining = projects.filter((p) => p.id !== id)
+        if (remaining.length > 0) nextItem = remaining[0]
+      } else {
+        const remaining = snippets.filter((s) => s.id !== id)
+        if (remaining.length > 0) nextItem = remaining[0]
+      }
+
       // Use the hook's deleteItem which handles API calls and state updates for both snippets and projects
       await deleteItem(id)
 
       // Ensure creating editor mode is turned off
       setIsCreatingSnippet(false)
 
+      // Update local selection state to match what the hook did (or should have done)
       if (wasActive) {
-        setActiveSnippet(null)
-        setActiveProject(null)
-        setSelectedSnippet(null)
-        setActiveView('welcome')
+        if (isProject) {
+          setActiveProject(nextItem)
+          // If no next item, activeView remains 'projects' but selectedSnippet becomes null
+          // Workbench will handle showing empty state or Welcome
+        } else {
+          setActiveSnippet(nextItem)
+        }
+
+        // If we have a next item, ensure it's selected (hook does this, but we sync local state above)
+        // If NO next item, we might want to show Welcome if list is empty
+        if (!nextItem) {
+          // If list is empty, show Welcome
+          setActiveView('welcome')
+          setSelectedSnippet(null)
+        }
+        // If there IS a next item, we stay in current view (snippets or projects)
       }
     } catch (error) {
       console.error('Failed to delete item:', error)
@@ -249,7 +287,10 @@ const SnippetLibrary = () => {
       <div className="flex-shrink-0">
         <ActivityBar
           activeView={activeView}
-          setActiveView={setActiveView}
+          setActiveView={(view) => {
+            setActiveView(view)
+            setIsCreatingSnippet(false)
+          }}
           toggleSidebar={() => setSidebarCollapsed(!sidebarCollapsed)}
         />
       </div>
@@ -318,6 +359,7 @@ const SnippetLibrary = () => {
       <div className="flex-1 flex flex-col items-stretch min-h-0 overflow-hidden bg-slate-50 dark:bg-slate-900 transition-colors duration-200">
         <Workbench
           activeView={isCreatingSnippet ? 'editor' : activeView}
+          currentContext={activeView}
           selectedSnippet={activeView === 'projects' ? activeProject : selectedSnippet}
           snippets={snippets}
           projects={projects}
@@ -367,11 +409,13 @@ const SnippetLibrary = () => {
       {/* Modals */}
 
       <CreateProjectModal
+        key={`modal-${modalKeyRef.current}`}
         isOpen={createProjectModalOpen}
         onClose={() => setCreateProjectModalOpen(false)}
         onSave={(data) => {
           createProject(data) // Call Hook
           setCreateProjectModalOpen(false)
+          modalKeyRef.current += 1 // Increment for next open
         }}
       />
 

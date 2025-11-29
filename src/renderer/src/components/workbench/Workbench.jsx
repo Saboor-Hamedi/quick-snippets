@@ -3,6 +3,7 @@ import PropTypes from 'prop-types'
 import SnippetEditor from '../SnippetEditor'
 import SettingsPanel from '../SettingsPanel'
 import WelcomePage from '../WelcomePage'
+import ViewToolbar from '../ViewToolbar'
 
 const Workbench = ({
   activeView,
@@ -14,7 +15,8 @@ const Workbench = ({
   projects,
   onDeleteRequest,
   onNewSnippet,
-  onNewProject
+  onNewProject,
+  currentContext
 }) => {
   const [editingSnippet, setEditingSnippet] = React.useState(null)
 
@@ -48,6 +50,7 @@ const Workbench = ({
         onCancel={onCancelEditor}
         onNew={onNewSnippet}
         onNewProject={onNewProject}
+        activeView={currentContext}
         isCreateMode
       />
     )
@@ -83,10 +86,18 @@ const Workbench = ({
     )
   }
 
-  // Priority 6: Projects view - show grid
+  // Priority 6: Projects view - show with toolbar
   if (activeView === 'projects') {
     return (
       <div className="h-full flex flex-col bg-slate-50 dark:bg-slate-900 overflow-hidden transition-colors duration-200">
+        <ViewToolbar
+          onNew={onNewProject}
+          layoutMode="editor"
+          setLayoutMode={() => {}}
+          previewPosition="right"
+          setPreviewPosition={() => {}}
+          resetSplit={() => {}}
+        />
         <div className="flex-1 p-6">
           <div className="h-full w-full flex items-center justify-center text-slate-500 dark:text-slate-400 text-sm">
             Select a project from the Explorer
@@ -99,7 +110,11 @@ const Workbench = ({
   // FINAL FALLBACK: Show welcome page when activeView is undefined/null or doesn't match any condition
   return (
     <div className="h-full">
-      <WelcomePage onNewSnippet={onNewSnippet} onNewProject={onNewProject} />
+      <WelcomePage
+        onNewSnippet={onNewSnippet}
+        onNewProject={onNewProject}
+        activeView={activeView}
+      />
     </div>
   )
 }
@@ -114,7 +129,8 @@ Workbench.propTypes = {
   projects: PropTypes.array.isRequired,
   onDeleteRequest: PropTypes.func.isRequired,
   onNewSnippet: PropTypes.func.isRequired,
-  onNewProject: PropTypes.func.isRequired
+  onNewProject: PropTypes.func.isRequired,
+  currentContext: PropTypes.string
 }
 
 export default Workbench
