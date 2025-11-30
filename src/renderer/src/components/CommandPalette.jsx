@@ -10,19 +10,19 @@ const CommandPalette = ({ isOpen, onClose, snippets = [], onSelect }) => {
 
   // Filter items based on search
   const filteredItems = React.useMemo(() => {
-    if (!search.trim()) return []
+    const searchLower = search.toLowerCase().trim()
 
-    const searchLower = search.toLowerCase()
-    const snippetResults = snippets
-      .filter((s) => {
-        const titleMatch = (s.title || '').toLowerCase().includes(searchLower)
-        const langMatch = (s.language || '').toLowerCase().includes(searchLower)
-        const codeMatch = (s.code || '').toLowerCase().includes(searchLower)
-        return titleMatch || langMatch || codeMatch
-      })
-      .map((s) => ({ ...s, type: 'snippet' }))
+    // If no search term, show all snippets. Otherwise, filter.
+    const sourceItems = !searchLower
+      ? snippets
+      : snippets.filter((s) => {
+          const titleMatch = (s.title || '').toLowerCase().includes(searchLower)
+          const langMatch = (s.language || '').toLowerCase().includes(searchLower)
+          const codeMatch = (s.code || '').toLowerCase().includes(searchLower)
+          return titleMatch || langMatch || codeMatch
+        })
 
-    return snippetResults.slice(0, 10) // Limit to 10 results
+    return sourceItems.map((s) => ({ ...s, type: 'snippet' })).slice(0, 10) // Limit to 10 results
   }, [search, snippets])
 
   // Reset selection when search changes
@@ -34,7 +34,9 @@ const CommandPalette = ({ isOpen, onClose, snippets = [], onSelect }) => {
   useEffect(() => {
     if (isOpen) {
       setTimeout(() => inputRef.current?.focus(), 50)
-      setSearch('')
+      // We don't want to clear search on open anymore,
+      // so the list can be populated initially.
+      // setSearch('')
     }
   }, [isOpen])
 

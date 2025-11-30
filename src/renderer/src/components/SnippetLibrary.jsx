@@ -3,30 +3,17 @@ import { useToast } from '../utils/ToastNotification'
 import { useSnippetData } from '../hook/useSnippetData'
 // Components
 import Workbench from './workbench/Workbench'
+import CommandPalette from './CommandPalette'
 
 const SnippetLibrary = () => {
   // 1. Logic & Data (From Hook)
-  const {
-    snippets,
-    selectedSnippet,
-    setSelectedSnippet,
-    setSnippets,
-    saveSnippet,
-    deleteItem,
-    onNewSnippet
-  } = useSnippetData()
+  const { snippets, selectedSnippet, setSelectedSnippet, setSnippets, saveSnippet, deleteItem } =
+    useSnippetData()
 
   // 2. UI STATE (Local only)
   const [activeView, setActiveView] = useState(() => {
-    // Restore activeView from localStorage, default to 'snippets'
     return localStorage.getItem('activeView') || 'snippets'
   })
-  const [searchTerm, setSearchTerm] = useState('')
-
-  // Persist activeView to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem('activeView', activeView)
-  }, [activeView])
 
   // Modals
   const [renameModal, setRenameModal] = useState({ isOpen: false, item: null })
@@ -36,8 +23,17 @@ const SnippetLibrary = () => {
   const { toast, showToast } = useToast()
   const [activeSnippet, setActiveSnippet] = useState(null)
 
-  // Removed global OS file drop handler in favor of sidebar-focused drop + dnd-kit
-  // Re-introduce guarded global drop for OS files: only acts when hovering sidebar list container
+  // Persist activeView to localStorage whenever it changes
+  useEffect(() => {
+    localStorage.setItem('activeView', activeView)
+  }, [activeView])
+
+  // Since sidebar is removed, filteredItems is just all snippets
+  const filteredItems = useMemo(() => {
+    return snippets
+  }, [snippets])
+
+  // Global file drop handler
   useEffect(() => {
     const onDragOver = (e) => {
       try {
@@ -47,6 +43,7 @@ const SnippetLibrary = () => {
         e.dataTransfer.dropEffect = 'copy'
       } catch {}
     }
+
     const onDrop = async (e) => {
       try {
         const types = Array.from(e.dataTransfer?.types || [])
@@ -74,6 +71,7 @@ const SnippetLibrary = () => {
         }
       } catch {}
     }
+
     window.addEventListener('dragover', onDragOver)
     window.addEventListener('drop', onDrop)
     return () => {
@@ -89,28 +87,8 @@ const SnippetLibrary = () => {
       setSelectedSnippet(activeSnippet || null)
     }
   }, [activeView, activeSnippet, isCreatingSnippet])
-  // 3. Search Filter Logic
-  const filteredItems = useMemo(() => {
-    // B. Handle Markdown
-    if (activeView === 'markdown') {
-      const items = snippets.filter(
-        (s) => s.language === 'markdown' || s.title.toLowerCase().endsWith('.md')
-      )
-      if (!searchTerm.trim()) return items
-      return items.filter((item) => item.title.toLowerCase().includes(searchTerm.toLowerCase()))
-    }
 
-    // C. Default (All Snippets) — include markdown too
-    const items = snippets
-    if (!searchTerm.trim()) return items
-
-    return items.filter(
-      (item) =>
-        item.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        (item.language && item.language.toLowerCase().includes(searchTerm.toLowerCase()))
-    )
-  }, [snippets, searchTerm, activeView])
-  // 4. Global Actions (e.g. Opening a file from OS)
+  // 3. Global Actions (e.g. Opening a file from OS)
   const handleOpenFile = async () => {
     try {
       if (window.api?.openFile) {
@@ -139,16 +117,9 @@ const SnippetLibrary = () => {
     }
   }
 
-  // 5. Keyboard Shortcuts
+  // 4. Keyboard Shortcuts
   useEffect(() => {
     const handleKeyPress = (e) => {
-      // Prevent Ctrl+R (Reload)
-      // if ((e.ctrlKey || e.metaKey) && e.key === 'r') {
-      //   e.preventDefault()
-      //   console.log('Reload prevented')
-      //   return
-      // }
-
       // Escape closes modals and editor
       if (e.key === 'Escape') {
         if (renameModal.isOpen) setRenameModal({ ...renameModal, isOpen: false })
@@ -187,6 +158,7 @@ const SnippetLibrary = () => {
         }
       }
     }
+
     document.addEventListener('keydown', handleKeyPress)
     return () => document.removeEventListener('keydown', handleKeyPress)
   }, [
@@ -198,7 +170,7 @@ const SnippetLibrary = () => {
     renameModal.isOpen
   ])
 
-  // 6. Rename Logic -- This is where the rename modal is triggered and the rename is handled
+  // 5. Rename Logic
   const handleRename = async (newName) => {
     if (!renameModal.item) return
 
@@ -231,18 +203,15 @@ const SnippetLibrary = () => {
     }
     updatedItem.language = lang
 
-    // 2. Update the selected item immediately (optimistic update)
+    // Update the selected item immediately (optimistic update)
     if (selectedSnippet && selectedSnippet.id === updatedItem.id) {
       setSelectedSnippet(updatedItem)
     }
 
-    // 3. Save to backend using the hook's functions
-    // These functions automatically reload the sidebar list after saving
+    // Save to backend using the hook's functions
     try {
       await saveSnippet(updatedItem)
-      // Toast is shown by the hook functions
     } catch (error) {
-      // Error toast is shown by the hook functions
       // Revert the optimistic update if save failed
       if (selectedSnippet && selectedSnippet.id === updatedItem.id) {
         setSelectedSnippet(renameModal.item)
@@ -262,34 +231,30 @@ const SnippetLibrary = () => {
         } catch {}
       }
 
-      // Check if active BEFORE deleting (because deleteItem might change selectedSnippet)
+      // Check if active BEFORE deleting
       const wasActive =
         activeView === 'snippets' && (selectedSnippet?.id === id || activeSnippet?.id === id)
 
-      // Determine type and list to calculate next item
-      // We need to know the remaining items *after* deletion to update local state
+      // Determine next item
       let nextItem = null
       const remaining = snippets.filter((s) => s.id !== id)
       if (remaining.length > 0) nextItem = remaining[0]
 
-      // Use the hook's deleteItem which handles API calls and state updates for both snippets and projects
+      // Use the hook's deleteItem
       await deleteItem(id)
 
       // Ensure creating editor mode is turned off
       setIsCreatingSnippet(false)
 
-      // Update local selection state to match what the hook did (or should have done)
+      // Update local selection state
       if (wasActive) {
         setActiveSnippet(nextItem)
 
-        // If we have a next item, ensure it's selected (hook does this, but we sync local state above)
-        // If NO next item, we might want to show Welcome if list is empty
         if (!nextItem) {
           // If list is empty, show Welcome
           setActiveView('welcome')
           setSelectedSnippet(null)
         }
-        // If there IS a next item, we stay in current view (snippets or projects)
       }
     } catch (error) {
       console.error('Failed to delete item:', error)
@@ -313,7 +278,6 @@ const SnippetLibrary = () => {
             saveSnippet(item)
             setActiveSnippet(item)
             // If we were creating a new snippet, switch to viewing/editing it
-            // so the editor doesn't close or reset.
             if (isCreatingSnippet) {
               setSelectedSnippet(item)
               setIsCreatingSnippet(false)
@@ -346,6 +310,7 @@ const SnippetLibrary = () => {
         />
       </div>
 
+      {/* Rename Modal */}
       {renameModal.isOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white dark:bg-slate-800 rounded-lg shadow-xl w-full max-w-md mx-4 border border-slate-200 dark:border-slate-700">
@@ -387,10 +352,11 @@ const SnippetLibrary = () => {
         </div>
       )}
 
+      {/* Command Palette */}
       <CommandPalette
         isOpen={isCommandPaletteOpen}
         onClose={() => setIsCommandPaletteOpen(false)}
-        snippets={snippets}
+        snippets={snippets} // Pass raw snippets array directly
         onSelect={(item) => {
           setSelectedSnippet(item)
           setActiveView('snippets')

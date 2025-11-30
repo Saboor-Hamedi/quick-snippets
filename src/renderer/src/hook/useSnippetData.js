@@ -25,7 +25,7 @@ export const useSnippetData = () => {
     }
 
     loadData()
-  }, [showToast]) // showToast is a dependency
+  }) // showToast is a dependency
 
   // Save or update a snippet
   const saveSnippet = async (snippet, options = {}) => {
