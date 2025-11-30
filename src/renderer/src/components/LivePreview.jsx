@@ -18,7 +18,6 @@ SyntaxHighlighter.registerLanguage('python', py)
 SyntaxHighlighter.registerLanguage('bash', bash)
 SyntaxHighlighter.registerLanguage('markdown', markdown)
 SyntaxHighlighter.registerLanguage('xml', xml)
-SyntaxHighlighter.registerLanguage('html', xml)
 SyntaxHighlighter.registerLanguage('css', css)
 SyntaxHighlighter.registerLanguage('json', json)
 SyntaxHighlighter.registerLanguage('sql', sql)
@@ -31,7 +30,8 @@ const languageMap = {
   py: 'python',
   sh: 'bash',
   md: 'markdown',
-  txt: 'plaintext',
+  txt: 'text',
+  text: 'text',
   php: 'php',
   html: 'html',
   css: 'css',
@@ -41,37 +41,126 @@ const languageMap = {
   java: 'java'
 }
 
-const LivePreview = ({ code = '', language = 'txt' }) => {
+const LivePreview = ({ code = '', language = 'text' }) => {
   const isDark = document.documentElement.classList.contains('dark')
-  const style = isDark ? atomOneDark : docco
+  // const style = isDark ? atomOneDark : docco
   const mapped = languageMap[language] || language
 
-  if (language === 'md' || mapped === 'plaintext') {
+  if (language === 'md' || mapped === 'markdown') {
+    // Minimal Markdown -> React elements parser (supports headings, paragraphs,
+    // fenced code blocks, inline code, bold, and italic). This avoids adding
+    // an external dependency and covers the common cases you described.
+    const parseInline = (text) => {
+      // escape HTML
+      const esc = (s) =>
+        String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+
+      // Replace inline code, bold, italic in order and return an array of nodes
+      const parts = []
+      let rest = text
+
+      const pattern = /(`[^`]+`|\*\*[^*]+\*\*|\*[^*]+\*)/g
+      let lastIndex = 0
+      let m
+      while ((m = pattern.exec(rest))) {
+        const idx = m.index
+        if (idx > lastIndex) parts.push(esc(rest.slice(lastIndex, idx)))
+        const token = m[0]
+        if (token.startsWith('`')) {
+          parts.push(React.createElement('code', { key: parts.length }, token.slice(1, -1)))
+        } else if (token.startsWith('**')) {
+          parts.push(React.createElement('strong', { key: parts.length }, token.slice(2, -2)))
+        } else if (token.startsWith('*')) {
+          parts.push(React.createElement('em', { key: parts.length }, token.slice(1, -1)))
+        }
+        lastIndex = idx + token.length
+      }
+      if (lastIndex < rest.length) parts.push(esc(rest.slice(lastIndex)))
+      return parts.map((p, i) =>
+        typeof p === 'string' ? React.createElement(React.Fragment, { key: i }, p) : p
+      )
+    }
+
+    const parseMarkdownToElements = (md) => {
+      const out = []
+      const lines = md.replace(/\r\n/g, '\n').split('\n')
+      let i = 0
+      while (i < lines.length) {
+        const line = lines[i]
+
+        // Fenced code block
+        if (line.startsWith('```')) {
+          const lang = line.slice(3).trim() || ''
+          i++
+          const codeLines = []
+          while (i < lines.length && !lines[i].startsWith('```')) {
+            codeLines.push(lines[i])
+            i++
+          }
+          // skip closing fence
+          i++
+          out.push(
+            React.createElement(
+              'pre',
+              { key: out.length, className: 'md-code-block' },
+              React.createElement('code', { className: `language-${lang}` }, codeLines.join('\n'))
+            )
+          )
+          continue
+        }
+
+        // Heading
+        const hMatch = line.match(/^(#{1,6})\s+(.*)$/)
+        if (hMatch) {
+          const level = hMatch[1].length
+          out.push(React.createElement(`h${level}`, { key: out.length }, parseInline(hMatch[2])))
+          i++
+          continue
+        }
+
+        // Blank line -> skip
+        if (!line.trim()) {
+          i++
+          continue
+        }
+
+        // Paragraph (collect until blank line)
+        const paraLines = [line]
+        i++
+        while (i < lines.length && lines[i].trim()) {
+          paraLines.push(lines[i])
+          i++
+        }
+        const paraText = paraLines.join(' ')
+        out.push(React.createElement('p', { key: out.length }, parseInline(paraText)))
+      }
+      return out
+    }
+
+    const elements = parseMarkdownToElements(code || '')
     return (
-      <pre
-        className="m-0"
-        style={{
-          fontSize: 16,
-          lineHeight: '1.5',
-          color: 'var(--text-main)'
-        }}
+      <div
+        className="markdown-preview p-3"
+        style={{ fontSize: 16, lineHeight: '1.6', color: 'var(--text-main)' }}
       >
-        <code>{code}</code>
-      </pre>
+        {elements}
+      </div>
     )
   }
+  // Ensure 'txt' maps to a neutral 'text' language for the highlighter
 
   return (
     <SyntaxHighlighter
       language={mapped}
-      style={style}
+      style={undefined}
+      useInlineStyles={false}
       customStyle={{
         fontSize: 16,
         background: 'transparent',
-        margin: 0,
-        color: 'var(--text-main)'
+        margin: 0
+        // color: 'var(--text-main)'
       }}
-      showLineNumbers={false}
+      showLineNumbers={true}
       wrapLongLines
     >
       {code}

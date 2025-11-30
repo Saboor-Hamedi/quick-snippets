@@ -25,6 +25,13 @@ module.exports = {
           900: 'var(--color-background)'
         }
       },
+      fontSize: {
+        large: '1.125rem', // 18px (or any value you want)
+        medium: '1rem', // 16px example
+        small: '0.875rem', // 14px example
+        xsmall: '0.75rem', // 12px example
+        tiny: '0.625rem' // 10px example
+      },
       animation: {
         'fade-in': 'fadeIn 0.3s ease-in-out',
         'slide-in': 'slideIn 0.3s ease-out'

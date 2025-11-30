@@ -24,8 +24,9 @@
     "better-sqlite3": "^12.5.0",
     "lucide": "^0.555.0",
     "lucide-react": "^0.555.0",
+    "marked": "^17.0.1",
     "prop-types": "^15.8.1",
-    "react-syntax-highlighter": "^15.6.0"
+    "react-syntax-highlighter": "^16.1.0"
   },
   "devDependencies": {
     "@electron-toolkit/eslint-config": "^2.1.0",

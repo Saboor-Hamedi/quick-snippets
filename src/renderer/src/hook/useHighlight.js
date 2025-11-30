@@ -1,7 +1,6 @@
 import { useMemo } from 'react'
 import hljs from 'highlight.js/lib/core'
 
-// Import only the languages you need (keep it lightweight)
 import javascript from 'highlight.js/lib/languages/javascript'
 import python from 'highlight.js/lib/languages/python'
 import xml from 'highlight.js/lib/languages/xml' // HTML uses XML
@@ -34,17 +33,18 @@ const languageMap = {
   py: 'python',
   sh: 'bash',
   md: 'markdown',
-  txt: 'txt',
+  txt: 'text',
+  text: 'text',
   php: 'php'
 }
 
-const useHighlight = (code, language = 'txt') => {
+const useHighlight = (code, language = 'text') => {
   return useMemo(() => {
     // Map language aliases to their full names
     const mappedLanguage = languageMap[language] || language
 
     // Handle plain text (no highlighting needed)
-    if (mappedLanguage === 'txt' || !code.trim()) {
+    if (mappedLanguage === 'text' || mappedLanguage === 'txt' || !code.trim()) {
       return code
     }
 

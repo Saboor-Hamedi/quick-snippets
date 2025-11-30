@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react'
-import { useToast } from '../utils/ToastNotification'
+import { useToast } from '../hook/useToast'
+
 import ThemeModal from './ThemeModal'
 import { SunMoon, FileDown, Settings } from 'lucide-react'
 import { useFontSettings } from '../hook/useFontSettings'

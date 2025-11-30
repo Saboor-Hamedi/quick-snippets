@@ -1,5 +1,7 @@
 import './assets/index.css'
-
+import './assets/toast.css'
+import './assets/markdown.css'
+import './assets/highlighter.css'
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import App from './App'

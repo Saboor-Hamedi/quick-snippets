@@ -17,7 +17,7 @@ const SnippetEditor = ({
   activeView
 }) => {
   const [code, setCode] = useState(initialSnippet?.code || '')
-  const [language, setLanguage] = React.useState(initialSnippet?.language || 'txt')
+  const [language, setLanguage] = React.useState(initialSnippet?.language || 'text')
 
   const saveTimerRef = useRef(null)
 
@@ -80,7 +80,7 @@ const SnippetEditor = ({
   React.useEffect(() => {
     const t = code || ''
     const has = (r) => r.test(t)
-    let detected = 'txt'
+    let detected = 'text'
     if (has(/^\s*<\w|<!DOCTYPE|<html[\s>]/i)) detected = 'html'
     else if (has(/<\?php|<\?=|\$\w+|->|::/)) detected = 'php'
     else if (has(/\b(def|import\s+\w+|from\s+\w+|print\(|elif|except|with)\b/)) detected = 'py'
@@ -145,8 +145,7 @@ const SnippetEditor = ({
       h: 'cpp',
       java: 'java',
       sh: 'sh',
-      md: 'md',
-      txt: 'txt'
+      md: 'md'
     }
     let lang = language
     if (hasExt) {
@@ -201,7 +200,7 @@ const SnippetEditor = ({
                   />
                 }
                 right={
-                  <div className="p-3">
+                  <div className="p-3 ">
                     <LivePreview code={code || ''} language={language} />
                   </div>
                 }
@@ -249,7 +248,7 @@ const SnippetEditor = ({
                           java: 'java',
                           sh: 'sh',
                           md: 'md',
-                          txt: 'txt'
+                          txt: 'text'
                         }
                         let lang = language
                         if (hasExt) {
